@@ -18,8 +18,7 @@ Top-level directory structure and purposes:
 | `work/`          | Active working docs, preflights, and return packages; archives to `archive/work/`       |
 | `archive/`       | Historical docs and completed work no longer active source of truth                     |
 | `public/`        | Static assets (fonts, team logos, player headshots)                                     |
-| `cba/`           | NBA CBA reference materials (guides, articles, rule cards)                              |
-| `.github/`       | GitHub Actions workflows, PR template, and Copilot configuration                        |
+| `.github/`       | GitHub Actions workflows and PR template                                                |
 
 ### Key Subdirectories
 

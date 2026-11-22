@@ -12,8 +12,8 @@ Preview link or screenshots (1280×720 and phone width for visible changes).
 
 - Tests run and results:
 - Checks skipped and why (skipped checks are never reported as passed):
-- Second review (required for money, trade or signing legality, saved data,
-  permissions or security): reviewer and verdict, or "not needed" and why:
+- Second review (required when AGENTS.md or `npm run test:diff` says so):
+  reviewer and verdict, or "not needed" and why:
 
 ## Anything the owner needs to decide
 

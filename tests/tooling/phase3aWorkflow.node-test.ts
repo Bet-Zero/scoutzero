@@ -62,22 +62,6 @@ function runGit(cwd: string, args: string[]) {
   return result.stdout.trim();
 }
 
-function assertAppearsInOrder(
-  content: string,
-  markers: readonly string[],
-  label: string
-) {
-  const normalizedContent = content.replace(/\s+/g, ' ');
-  let cursor = -1;
-  for (const marker of markers) {
-    const normalizedMarker = marker.replace(/\s+/g, ' ');
-    const next = normalizedContent.indexOf(normalizedMarker, cursor + 1);
-    assert.notEqual(next, -1, `${label} is missing: ${marker}`);
-    assert.ok(next > cursor, `${label} is out of order at: ${marker}`);
-    cursor = next;
-  }
-}
-
 function activeLeafRow(canon: string, leafId: string): string {
   const matches = canon
     .split(/\r?\n/)
@@ -318,7 +302,7 @@ test('pull request template keeps honest check reporting and the second-review q
   );
 
   assert.match(template, /skipped checks are never reported as passed/);
-  assert.match(template, /Second review \(required for money, trade or signing legality, saved data,\n\s*permissions or security\)/);
+  assert.match(template, /Second review \(required when AGENTS\.md or `npm run test:diff` says so\)/);
   assert.match(template, /Fixes BZE-xx` only if this\npull request finishes that issue/);
   assert.doesNotMatch(template, /Independent Claude returned `ACCEPT`/);
 });
