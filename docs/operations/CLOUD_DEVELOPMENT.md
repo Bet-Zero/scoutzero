@@ -112,18 +112,30 @@ deleting unowned rootless data. This cancellation consumes maintenance budget.
 
 ### Reproduce older-world compatibility locally
 
-Use fresh demo emulators and the loopback HTTP settings above. Keep the
+Use a fresh isolated demo session with the app's source dataset loaded and no
+saved proof worlds. Keep the
 hash-verified Linear archive at `.scoutzero-dev/starting-data/current-recovery.tar.xz`
 and the two verified current inputs at `.scoutzero-dev/world-packages/`. Start
-the local app with `VITE_SCOUTZERO_WORLD_HTTP=true` and
-`VITE_SCOUTZERO_SIMULATION_LIVE=true`. Then run:
+the local app:
+
+```bash
+VITE_SCOUTZERO_WORLD_HTTP=true VITE_SCOUTZERO_SIMULATION_LIVE=true \
+  SCOUTZERO_WORLD_LOCAL_PROOF=true SCOUTZERO_WORLD_HTTP_ENABLED=true \
+  SCOUTZERO_WORLD_OWNER_UID=zero_billing_owner \
+  SCOUTZERO_WORLD_ORIGIN=http://127.0.0.1:5173 \
+  SCOUTZERO_WORLD_PACKAGE_DIRECTORY=.scoutzero-dev/world-packages \
+  npm run cloud:dev
+```
+
+With the app ready, run:
 
 ```bash
 GCLOUD_PROJECT=demo-architect-review FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 \
   FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
   node --import tsx tests/e2e/fixtures/seedOlderWorldCompatibility.ts
 SCOUTZERO_WORLD_LIFECYCLE_PROOF=true SCOUTZERO_WORLD_COMPATIBILITY_PROOF=true \
-  npx playwright test tests/e2e/architect-world-lifecycle.spec.ts
+  npx playwright test tests/e2e/architect-world-lifecycle.spec.ts \
+  --reporter=line --output=.scoutzero-dev/compatibility-results
 ```
 
 The seeder runs the trusted initializers from #656 and #658, then captures and
@@ -164,14 +176,18 @@ Production domains and aliases are outside this rollout.
 Verify the Firebase project is on Spark with billing disabled and check shared
 Firestore and Hobby headroom before enabling the preview. Confirm the owner
 accepts Vercel handling the private inputs and review the team's Data Preferences.
-Run `vercel build --standalone` from the reviewed commit in a clean staging
-directory. Before uploading the private prebuilt bundle, compare both
-server-package digests to the pins and verify neither package is in the static
-output or any other function. Enter the service account credential directly
-into Vercel. Keep it out of files sent to GitHub or bundled for deployment.
+Run `vercel build --standalone` from a clean Git checkout of the reviewed
+`architect-owner-preview` branch. Before uploading the private prebuilt bundle,
+compare both server-package digests to the pins and verify neither package is
+in the static output or any other function. Scope the server configuration and
+write-only service account Secret to Preview on that branch alone. Confirm the
+manual prebuilt deploy retains the branch's Git context and receives only its
+scoped credentials. Keep the key out of other Preview environments and out of
+files sent to GitHub or bundled for deployment.
 
-Publish only the reviewed Firestore Rules for the existing project. Preserve
-the active Rules release for rollback. Add only the generated Preview hostname
+Compare the active Firestore Rules in the shared project with the reviewed
+file before requesting authorization to publish the exact delta. Preserve the
+active Rules release for rollback. Add only the generated Preview hostname
 to Firebase Authentication's Authorized Domains for Google sign-in. Conduct one
 hosted owner journey on newly created disposable worlds. Validate a player
 trade and a pick trade, apply, verify the history after reload, then delete and

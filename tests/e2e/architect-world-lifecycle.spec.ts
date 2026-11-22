@@ -64,7 +64,12 @@ async function reopenOlderWorlds(
 ) {
   const menu = page.getByTestId('cockpit-world-menu-trigger');
   const picker = page.locator('#world-selector');
+  const trade = page.getByRole('dialog', { name: /Trade Machine/i });
   for (const { worldId, identity } of fixtures) {
+    if (await trade.isVisible()) {
+      await trade.getByRole('button', { name: /Close/i }).last().click();
+      await expect(trade).toBeHidden();
+    }
     if (!(await picker.isVisible())) await menu.click();
     const accept = (dialog: Dialog) => dialog.accept();
     page.on('dialog', accept);
