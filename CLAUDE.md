@@ -1,5 +1,7 @@
-# Claude Code Instructions
+# Claude Code instructions
 
-Read and follow [AGENTS.md](./AGENTS.md), including its three execution levels.
-Select checks and independent review from actual impact and dependencies.
-Graph inspection/update is conditional as described there, not a per-edit gate.
+Read and follow [AGENTS.md](./AGENTS.md).
+
+On this project, Claude Code is usually the second reviewer, or a "fresh eyes"
+builder when Codex is unavailable or a task is stuck. When reviewing, you are a
+checker: judge the change and report real problems; don't rewrite it.

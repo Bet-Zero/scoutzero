@@ -6,7 +6,7 @@
 changed_architect_files=$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- 'src/features/architect/**/*.ts' 'src/features/architect/**/*.tsx' 2>/dev/null || true)
 if [ -n "$changed_architect_files" ]; then
   node scripts/architect-cast-gate.mjs || {
-    echo "Error: Architect cast-gate failed. Violation counts increased vs baseline. See docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md for the new-exception protocol."
+    echo "Error: Architect cast-gate failed. Violation counts increased vs baseline. See docs/reference/architect/type-hardening/ARCHITECT_TYPE_CAST_LEDGER.md for the new-exception protocol."
     exit 1
   }
 fi

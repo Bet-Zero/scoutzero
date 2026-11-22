@@ -281,148 +281,11 @@ test('accepted Canon documentation and durable ref match the runtime pin', () =>
   );
 });
 
-test('Phase 3A policy binds freeze to tranche-specific author review', () => {
-  const profile = fs.readFileSync(
-    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
-    'utf8'
-  );
-
-  assert.match(profile, /focused failure-testing matrix/);
-  assert.match(
-    profile,
-    /incorrectly authorize, calculate, mutate, persist, or report/
-  );
-  assert.match(
-    profile,
-    /do not impose one enormous generic mutation checklist/
-  );
-  assert.match(
-    profile,
-    /Select the largest coherent, independently reviewable/
-  );
-  assertAppearsInOrder(
-    profile,
-    [
-      'Complete the focused author failure-testing matrix',
-      'Triage available automated findings for relevance and correctness',
-      'genuine defects affecting this assignment',
-      'Declare the candidate frozen when author review and required checks are complete',
-    ],
-    'pre-freeze author and automated review policy'
-  );
-});
-
-test('Phase 3A policy retains mutable governed bytes before certification', () => {
-  const profile = fs.readFileSync(
-    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
-    'utf8'
-  );
-
-  assertAppearsInOrder(
-    profile,
-    [
-      'Retrieve the source twice',
-      'Retain those exact bytes in the governed content-addressed location',
-      'Recompute and verify the hash and size from the retained copy',
-      'Verify that the retained copy is independently recoverable',
-      'Only then present its fingerprint for owner certification',
-    ],
-    'mutable-source certification policy'
-  );
-  assert.match(
-    profile,
-    /not already retained and recoverable, stop the authority\ngate before owner certification/
-  );
-});
-
-test('Phase 3A policy settles automated review and exact-head CI before Claude', () => {
-  const profile = fs.readFileSync(
-    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
-    'utf8'
-  );
-  const template = fs.readFileSync(
-    path.join(repoRoot, '.github/pull_request_template.md'),
-    'utf8'
-  );
-
-  assertAppearsInOrder(
-    profile,
-    [
-      'Open a PR when it has a coherent reviewable diff',
-      'Optional automated review may run during author work when useful',
-      'Declare the candidate frozen when author review and required checks are complete',
-      'only the green hosted CI receipt for the frozen final head counts as required evidence',
-      'Only then generate the immutable independent-Claude prompt',
-      'Any subsequent head change invalidates that prompt',
-    ],
-    'automated-review, freeze, CI, and Claude policy'
-  );
-  assert.match(profile, /Optional pending review is not a mandatory wait/);
-  assert.match(
-    profile,
-    /Required independent acceptance remains a separate exact-candidate gate/
-  );
-  assert.match(
-    profile,
-    /Draft PR checks may start automatically before freeze/
-  );
-  assert.match(
-    template,
-    /For consequential work, include focused failure proof/
-  );
-  assert.match(
-    template,
-    /exact frozen\ncandidate\/base, green CI and independent acceptance receipts/
-  );
-  assert.match(
-    template,
-    /Apply the Phase 3A\nrecord only when that lane governs the work/
-  );
-  assert.match(
-    template,
-    /not required with reason, or exact candidate\/verdict receipt/
-  );
-});
-
-test('Phase 3A policy separates browser diagnostics from retained certification', () => {
-  const profile = fs.readFileSync(
-    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
-    'utf8'
-  );
-  const template = fs.readFileSync(
-    path.join(repoRoot, '.github/pull_request_template.md'),
-    'utf8'
-  );
+test('Trade Receipt certification harness binds pushed candidate, screenshots and teardown', () => {
   const certificationHarness = fs.readFileSync(
     path.join(repoRoot, 'scripts/review/runTradeReceiptProof.ts'),
     'utf8'
   );
-
-  assertAppearsInOrder(
-    profile,
-    [
-      'pass the complete workflow in a lightweight diagnostic browser run before candidate freeze',
-      'cannot be cited as certification evidence',
-      'per-change retained certification is not required for\nTrade Machine work',
-      'When it is used, run retained certification only after that diagnostic pass',
-      'clean, frozen, pushed, and equal to its configured upstream',
-      'Repair the defect, re-pass the complete workflow diagnostically',
-      'then certify that replacement',
-    ],
-    'diagnostic and retained browser evidence policy'
-  );
-  assert.match(
-    profile,
-    /npx playwright test tests\/e2e\/architect-trade-receipt-proof\.spec\.ts/
-  );
-  assert.match(profile, /npm run architect:proof:trade-receipt/);
-  assert.match(profile, /Graphify queries may be used/);
-  assert.match(
-    profile,
-    /only when changed topology invalidates a relevant retained claim/
-  );
-  assert.match(profile, /Validation reruns follow the changed risk surface/);
-  assert.match(profile, /test-only assertion or evidence edit/);
 
   assert.match(certificationHarness, /@\{upstream\}/);
   assert.match(certificationHarness, /pushedCandidate !== candidate/);
@@ -446,12 +309,17 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   );
   assert.match(certificationHarness, /hashFile\(proofPath\)/);
   assert.match(certificationHarness, /manifest\.json/);
+});
 
-  assert.match(
-    template,
-    /Browser\/emulator artifacts are\nrequired only for affected risks/
+test('pull request template keeps honest check reporting and the second-review question', () => {
+  const template = fs.readFileSync(
+    path.join(repoRoot, '.github/pull_request_template.md'),
+    'utf8'
   );
-  assert.match(template, /existing owner-approved design wave/);
+
+  assert.match(template, /skipped checks are never reported as passed/);
+  assert.match(template, /Second review \(required for money, trade or signing legality, saved data,\n\s*permissions or security\)/);
+  assert.match(template, /Fixes BZE-xx` only if this\npull request finishes that issue/);
   assert.doesNotMatch(template, /Independent Claude returned `ACCEPT`/);
 });
 
