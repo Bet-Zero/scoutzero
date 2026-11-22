@@ -50,7 +50,40 @@ export async function removeArchitectWorld(
     if ((root && root.createdBy !== uid) || (prior && prior.uid !== uid))
       throw new WorldAdmissionError(403, 'owner-mismatch');
     if (prior?.status === 'deleted') return;
-    if (!root && !prior) throw new WorldAdmissionError(404, 'world-not-found');
+    const chargeMaintenance = () => {
+      const chargedAt = now();
+      const day = utcDay(chargedAt);
+      const maintenanceToday =
+        used.maintenanceDay === day ? (used.maintenanceToday ?? 0) : 0;
+      if (
+        maintenanceToday >= limits.maintenancePerDay ||
+        chargedAt - (used.lastMaintenanceAt ?? 0) < 1000
+      )
+        throw new WorldAdmissionError(429, 'cleanup-rate-limited');
+      tx.set(counter, {
+        ...used,
+        maintenanceDay: day,
+        maintenanceToday: maintenanceToday + 1,
+        lastMaintenanceAt: chargedAt,
+        deletesToday:
+          used.maintenanceDay === day ? (used.deletesToday ?? 0) : 0,
+      });
+    };
+    if (!root && !prior) {
+      if (input.operation !== 'cleanup')
+        throw new WorldAdmissionError(404, 'world-not-found');
+      // No claim means there is no proof of ownership of any rootless descendants.
+      // Cancel the unadmitted ID only; do not traverse or delete any such data.
+      if (used.activeWorldIds.includes(worldId))
+        throw new WorldAdmissionError(503, 'admission-unavailable');
+      chargeMaintenance();
+      tx.create(claim, {
+        uid,
+        status: 'deleted',
+        cancelledBeforeAdmission: true,
+      });
+      return;
+    }
     if (root?.worldId && root.worldId !== worldId)
       throw new WorldAdmissionError(409, 'world-conflict');
     if (prior?.status === 'deleting' && prior.removalLeaseUntil > now())
@@ -112,21 +145,7 @@ export async function removeArchitectWorld(
     );
     if (!children.empty || (root?.childWorlds?.length ?? 0) > 0)
       throw new WorldAdmissionError(409, 'world-has-children');
-    const maintenanceToday =
-      used.maintenanceDay === utcDay(now()) ? (used.maintenanceToday ?? 0) : 0;
-    if (
-      maintenanceToday >= limits.maintenancePerDay ||
-      now() - (used.lastMaintenanceAt ?? 0) < 1000
-    )
-      throw new WorldAdmissionError(429, 'cleanup-rate-limited');
-    tx.set(counter, {
-      ...used,
-      maintenanceDay: utcDay(now()),
-      maintenanceToday: maintenanceToday + 1,
-      lastMaintenanceAt: now(),
-      deletesToday:
-        used.maintenanceDay === utcDay(now()) ? (used.deletesToday ?? 0) : 0,
-    });
+    chargeMaintenance();
     tx.set(claim, {
       ...prior,
       uid,

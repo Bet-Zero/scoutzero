@@ -444,13 +444,18 @@ it('explicit discard cleans a failed ID before allowing another creation', async
   const first = readPendingWorldCreation(input.userId)!;
   await discardPendingWorldCreation(input.userId);
   expect(readPendingWorldCreation(input.userId)).toBeNull();
-  await expect(createWorld(input)).rejects.toThrow();
+  await expect(
+    createWorld({ ...input, name: 'Different request after confirmed discard' })
+  ).rejects.toThrow();
   expect(requests[1]).toEqual({
     operation: 'cleanup',
     worldId: first.worldId,
     userId: input.userId,
   });
   expect(requests[2].worldId).not.toBe(first.worldId);
+  expect(requests[2].worldName).toBe(
+    'Different request after confirmed discard'
+  );
 });
 it.each([false, 'lost-response', 'saved-world'])(
   'keeps pending identity when discard is incomplete or refused: %s',

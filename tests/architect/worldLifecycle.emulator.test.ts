@@ -371,6 +371,126 @@ describe('owner world lifecycle', () => {
     }
     expect(packages).not.toHaveBeenCalled();
   });
+  it('confirms pre-admission cancellation and fences an older delayed HTTP initializer without deleting unowned staging', async () => {
+    const id = 'unadmitted';
+    const env = {
+      SCOUTZERO_WORLD_HTTP_ENABLED: 'true',
+      SCOUTZERO_WORLD_LOCAL_PROOF: 'true',
+      GCLOUD_PROJECT: 'demo-architect-review',
+      FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
+      FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
+      SCOUTZERO_WORLD_OWNER_UID: uid,
+      SCOUTZERO_WORLD_ORIGIN: 'http://127.0.0.1:5173',
+    };
+    let unavailable = true;
+    const handler = createArchitectWorldHandler(
+      {
+        db,
+        pager,
+        now: () => now,
+        packages: () => {
+          if (unavailable) throw new Error('synthetic package unavailable');
+          return { financial: null, draft: null } as never;
+        },
+        verifyToken: async () =>
+          ({
+            uid,
+            aud: env.GCLOUD_PROJECT,
+            iss: `https://securetoken.google.com/${env.GCLOUD_PROJECT}`,
+            firebase: { sign_in_provider: 'password' },
+          }) as never,
+      },
+      env
+    );
+    const headers = {
+      authorization: 'Bearer synthetic',
+      'content-type': 'application/json',
+    };
+    const response = () => ({
+      statusCode: 0,
+      body: '',
+      setHeader: () => {},
+      end(text: string) {
+        this.body = text;
+      },
+    });
+    const input = {
+      worldId: id,
+      worldName: 'Original failed request',
+      userId: uid,
+    };
+    const failed = response();
+    await handler({ method: 'POST', headers, body: input } as never, failed);
+    expect(failed.statusCode).toBe(503);
+    expect((await claim(id).get()).exists).toBe(false);
+    unavailable = false;
+    // This foreign/unowned rootless row has no claim and must never be adopted or deleted.
+    const sentinel = root(id).collection('teams').doc('opaque');
+    await sentinel.set({ untouched: true });
+    let release!: () => void, waiting!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const readStarted = new Promise<void>((resolve) => {
+      waiting = resolve;
+    });
+    const delayed = response();
+    const older = handler(
+      {
+        method: 'POST',
+        headers,
+        [Symbol.asyncIterator]: async function* () {
+          waiting();
+          await gate;
+          yield Buffer.from(JSON.stringify(input));
+        },
+      } as never,
+      delayed
+    );
+    await readStarted;
+    const cancelled = response();
+    await handler(
+      {
+        method: 'POST',
+        headers,
+        body: { operation: 'cleanup', worldId: id, userId: uid },
+      } as never,
+      cancelled
+    );
+    expect(cancelled.statusCode).toBe(200);
+    expect(JSON.parse(cancelled.body)).toMatchObject({ ok: true, done: true });
+    expect((await claim(id).get()).data()).toMatchObject({
+      uid,
+      status: 'deleted',
+      cancelledBeforeAdmission: true,
+    });
+    release();
+    await older;
+    expect(delayed.statusCode).toBe(409);
+    expect((await root(id).get()).exists).toBe(false);
+    expect((await sentinel.get()).data()).toEqual({ untouched: true });
+    expect((await usage().get()).data()?.startsToday ?? 0).toBe(0);
+    expect((await usage().get()).data()?.maintenanceToday).toBe(1);
+    await expect(
+      reserve(db, uid, 'replacement', 'different-payload', now)
+    ).resolves.toMatchObject({ replay: false });
+  });
+  it('pre-admission cancellation obeys maintenance budgets and unknown ordinary deletion stays a refusal', async () => {
+    await usage().set({
+      worlds: 0,
+      lastStartedAt: 0,
+      activeWorldIds: [],
+      maintenanceDay: new Date(now).toISOString().slice(0, 10),
+      maintenanceToday: limits.maintenancePerDay,
+    });
+    await expect(remove('never-admitted', 'cleanup')).rejects.toMatchObject({
+      code: 'cleanup-rate-limited',
+    });
+    expect((await claim('never-admitted').get()).exists).toBe(false);
+    await expect(remove('unknown', 'delete')).rejects.toMatchObject({
+      code: 'world-not-found',
+    });
+  });
   it('Rules preserve normal trading writes and deny all client changes after the server deletion fence', async () => {
     const [host, port] = process.env.FIRESTORE_EMULATOR_HOST!.split(':');
     const rules = await initializeTestEnvironment({

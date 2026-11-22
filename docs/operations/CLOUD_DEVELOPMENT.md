@@ -107,6 +107,8 @@ request only after the server confirms removal; it refuses a committed fresh
 world, which must instead be recovered. Exhausted daily budgets require waiting
 for UTC reset; abandoned incomplete worlds retain their slot until cleanup.
 Deleted IDs keep small tombstones to prevent delayed retries recreating them.
+Discard also fences an ID that failed before admission, without traversing or
+deleting unowned rootless data. This cancellation consumes maintenance budget.
 
 Local lifecycle proof uses the actual recovered, hash-verified packages and
 `SCOUTZERO_WORLD_LIFECYCLE_PROOF=true` with

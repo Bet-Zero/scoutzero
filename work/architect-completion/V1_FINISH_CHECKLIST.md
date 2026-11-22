@@ -127,7 +127,7 @@ that changes the plan.
       financial/draft SHA-256 pins verified, with no reconstruction or substitution.
       The portable trusted initializer now has a default-closed HTTP adapter,
       verified nonanonymous owner tokens, server-only transactional admission
-      (three lifetime worlds, one start/minute, two attempts/world), pinned private
+      (original finite proof: three lifetime worlds, one start/minute, two attempts/world), pinned private
       assets and sanitized failures. Existing Firestore rules and trade engine
       remain intact. The actual-package browser journey passes creation, pick
       trade, saved receipt and visible reload, while historical and pre-B5 world
