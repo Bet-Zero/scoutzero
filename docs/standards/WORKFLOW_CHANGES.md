@@ -77,7 +77,15 @@ differently from the old ones:
   the repository itself is public.
 - **Visible design changes** still need the owner's approval from screenshots
   or a preview before merging, now for every part of the app, not only
-  Architect.
+  Architect. Work under a plan with one batched owner review (such as Architect
+  V1's final review) follows that plan.
+- **NBA rules in reviews.** When a change depends on an NBA rule, the author
+  pastes the rule text from the pinned rulebook lookup into the review request,
+  and the reviewer treats an unquoted rule dependency as a finding.
+- **New "never without the owner's OK" items:** deleting or replacing saved
+  data, docs or plans (or rewriting git history), contacting outside people or
+  companies, adding scope, and putting private data anywhere public. The old
+  file had no general rule for these.
 - **Return packages, Graphify refreshes, retained browser certificates, hash
   receipts and evidence ledgers** are no longer part of ordinary work.
 
@@ -100,10 +108,9 @@ longer exist. That's expected until stage 2.
 
 ### Not changed in stage 1
 
-- The "never without the owner's OK" safety rules (source data, production,
-  billing, merging, deleting). Stage 1 added `architect_draftPickReleases` to the
-  protected source data list and a rule against putting private data anywhere
-  public.
+- The existing "never without the owner's OK" safety rules (source data,
+  production, billing, merging). Stage 1 only added to them (see the list
+  above) and added `architect_draftPickReleases` to the protected source data.
 - The automatic test runner (`npm run test:diff`) and what CI checks.
 - The NBA rules lookup (`npm run architect:canon:lookup`) and its pinned rulebook.
 - The Architect V1 checklist and completion contract (Codex is still working

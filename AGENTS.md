@@ -40,15 +40,17 @@ The owner does not write code and relies on AI for all technical work.
   permissions, or contact outside people or companies.
 - Put private data (the starting-data packages, NBA source copies, credentials,
   emulator or browser state) anywhere public: this repository (it is public),
-  pull request or issue text, or public storage.
+  GitHub pull request or issue text, or public storage.
 - Merge or push to `main`. A standing "merge when it's ready" from the owner for
   a piece of work counts as OK for that work.
 - Merge a visible design or layout change before the owner has approved it from
   a preview or screenshots. A standing "merge when it's ready" doesn't cover
-  this; a small fix the owner described exactly does.
-- Delete or overwrite saved data, docs, plans or history. Move old material to
-  `archive/` and say so. Removing dead code as part of a normal code change is
-  fine.
+  this. Exceptions: a small fix the owner described exactly, and work under a
+  plan that already schedules one batched owner review (such as Architect V1's
+  final review).
+- Delete or replace saved data, docs or plans, or rewrite git history. Move old
+  material to `archive/` and say so. Editing docs as part of the task, and
+  removing dead code in a normal code change, are fine.
 - Add scope: new audits, certifications, evidence systems, review machinery, or
   features the task didn't ask for.
 
@@ -79,7 +81,7 @@ work, except where one of those workflows tells its reviewer to read them.
 2. **Start from current `main` on a branch.** Linear links a branch or pull
    request to an issue when its name or title contains the issue number, and
    moves that issue to Done when it merges. So use the number of the step issue
-   this work finishes (for example `bze-350-trade-machine-live`), and keep
+   this work finishes (for example `bze-NNN-short-name`), and keep
    parent or goal issue numbers (such as BZE-243) out of branch names and
    titles. Don't reset, clean, stash or overwrite anyone else's work in
    progress, and don't amend or squash existing commits.
