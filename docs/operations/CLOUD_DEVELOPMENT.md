@@ -70,6 +70,53 @@ The app uses the real copied dataset, not the tiny synthetic Architect seed.
 Forced cleanup tracks only owned descendant PIDs and their start times, so a
 stalled Function cannot leave a detached emulator running or kill another job.
 
+## Owner-only world HTTP lifecycle (PR #662, not activated)
+
+`VITE_SCOUTZERO_WORLD_HTTP=true` selects the same-origin `/api/architect/world`
+transport for initialization, deletion and failed-copy cleanup. The server stays
+closed unless its existing enabled/project/owner/origin configuration passes.
+It verifies a nonanonymous owner token including revocation/disabled status.
+Deletion does not load private packages or require Firebase Functions. Neither
+this option nor these instructions authorize a deployment, credential, IAM,
+billing, private production provisioning, public access or migration.
+
+Three occupied slots include all retained owner world roots (archived ones too)
+and incomplete HTTP reservations. A slot releases only when scoped recursive
+removal, root deletion and bookkeeping finish together. Existing worlds are
+counted, not migrated. Independent limits are six initialization starts per UTC
+day including retries, one start/minute, and two attempts per immutable request
+ID. Deletion cannot reset that daily budget. Thirty maintenance requests and
+2,500 document deletes per UTC day bound cleanup separately; each request caps
+pages, depth, document deletes and elapsed traversal time. These are application
+budgets, not proof of account-wide Spark/Hobby headroom or zero total charges.
+
+Each initialization stage and the final atomic root transaction reads its
+150-second lease. Cleanup of a failed or expired attempt fences older workers;
+retry keeps the payload/ID and changes its lease. A pending legacy claim without
+that fencing protocol fails closed rather than being guessed safe. Every client
+world writer is denied once the server marks deletion. Actual child worlds block
+parent deletion; unfinished branch cleanup checks ownership, archived state and
+unattached lineage before fencing. Paths are derived only beneath that one
+world, including descendants below missing intermediate documents.
+
+The existing Delete Permanently confirmation starts bounded resumable deletion.
+One explicit action may continue through six bounded chunks; interrupted replies
+stop continuation. Retrying the same deletion resumes it. A failed creation offers
+Retry world creation and Discard failed creation. Discard clears its browser
+request only after the server confirms removal; it refuses a committed fresh
+world, which must instead be recovered. Exhausted daily budgets require waiting
+for UTC reset; abandoned incomplete worlds retain their slot until cleanup.
+Deleted IDs keep small tombstones to prevent delayed retries recreating them.
+
+Local lifecycle proof uses the actual recovered, hash-verified packages and
+`SCOUTZERO_WORLD_LIFECYCLE_PROOF=true` with
+`tests/e2e/architect-world-lifecycle.spec.ts`. This separate new-world proof is
+not original-world preservation. The strengthened original journey still needs
+the retained private export, `SCOUTZERO_WORLD_ORIGINALS_MANIFEST` and its
+independently retained `SCOUTZERO_WORLD_ORIGINALS_SHA256`; never generate them
+from whatever the test currently contains. Keep packages, sessions and proof
+artifacts private under `.scoutzero-dev/`.
+
 ## Actual live refresh and scope
 
 For the BZE-345 ordinary-world draft integration proof, start the same local

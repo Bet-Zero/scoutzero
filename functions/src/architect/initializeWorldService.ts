@@ -1,6 +1,11 @@
 /** Portable trusted world initialization; callers supply verified identity and database. */
 
-import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import {
+  FieldValue,
+  type Firestore,
+  type DocumentReference,
+  type DocumentData,
+} from 'firebase-admin/firestore';
 export class WorldInitializationError extends Error {
   constructor(
     public readonly code:
@@ -414,6 +419,12 @@ export type WorldInitializationDependencies = {
   loadTrustedDraft?: typeof loadTrustedDraftBaseline;
   financialSha256?: string;
   serverTimestamp?: () => unknown;
+  commitWrites?: (
+    build: (writer: {
+      create(ref: DocumentReference, data: DocumentData): unknown;
+      set(ref: DocumentReference, data: DocumentData): unknown;
+    }) => void
+  ) => Promise<void>;
 };
 
 export async function initializeArchitectWorldService(
@@ -421,6 +432,13 @@ export async function initializeArchitectWorldService(
   request: { data: InitializeArchitectWorldRequest; auth?: { uid: string } },
   dependencies: WorldInitializationDependencies = {}
 ) {
+  const commitWrites =
+    dependencies.commitWrites ??
+    (async (build) => {
+      const batch = db.batch();
+      build(batch);
+      await batch.commit();
+    });
   const timestamp =
     dependencies.serverTimestamp ?? (() => FieldValue.serverTimestamp());
   if (!request.auth) {
@@ -501,6 +519,11 @@ export async function initializeArchitectWorldService(
         );
       }
       const parent = parentSnapshot.data() ?? {};
+      if (parent.worldLifecycle || parent.partialBranchCleanupClaim)
+        throw new WorldInitializationError(
+          'failed-precondition',
+          'Parent world is unavailable.'
+        );
       if (parent.createdBy !== request.auth.uid) {
         throw new WorldInitializationError(
           'permission-denied',
@@ -700,65 +723,72 @@ export async function initializeArchitectWorldService(
       // world only appears when the batch below creates its document.
       const entries = Object.entries(simulationBaseline.teams);
       for (let index = 0; index < entries.length; index += 5) {
-        const staged = db.batch();
-        for (const [code, team] of entries.slice(index, index + 5))
-          staged.set(
-            worldRef.collection('teams').doc(code),
-            simulationDraft
-              ? {
-                  ...team,
-                  // Draft custody comes only from the SIMULATION draft baseline.
-                  entitlementIds:
-                    simulationDraft.baseline.initialTeams[code].entitlementIds,
-                }
-              : team
-          );
-        await staged.commit();
+        await commitWrites((staged) => {
+          for (const [code, team] of entries.slice(index, index + 5))
+            staged.set(
+              worldRef.collection('teams').doc(code),
+              simulationDraft
+                ? {
+                    ...team,
+                    // Draft custody comes only from the SIMULATION draft baseline.
+                    entitlementIds:
+                      simulationDraft.baseline.initialTeams[code]
+                        .entitlementIds,
+                  }
+                : team
+            );
+        });
       }
     }
-    const batch = db.batch();
-    batch.create(worldRef, metadata);
-    for (const document of documents) {
-      batch.create(
-        worldRef
-          .collection(CONTRACT_BASELINES_SUBCOLLECTION)
-          .doc(document.shardId),
-        document
-      );
-    }
-    if (draftBaseline) {
-      batch.create(worldRef.collection('draftBaselines').doc('root'), {
-        worldId,
-        release: draftBaseline.baseline,
-      });
-      for (const [code, team] of Object.entries(
-        draftBaseline.baseline.initialTeams
-      ))
-        batch.create(worldRef.collection('teams').doc(code), team);
-      for (const [id, entitlement] of Object.entries(
-        draftBaseline.baseline.retainedEntitlements
-      ))
-        batch.create(worldRef.collection('entitlements').doc(id), entitlement);
-    }
-    if (simulationDraft) {
-      batch.create(worldRef.collection('draftBaselines').doc('root'), {
-        worldId,
-        release: simulationDraft.baseline,
-      });
-      for (const [id, entitlement] of Object.entries(
-        simulationDraft.baseline.retainedEntitlements
-      ))
-        batch.create(worldRef.collection('entitlements').doc(id), entitlement);
-    }
-    if (simulationCopy?.draftRoot) {
-      // The client copies mutable world state; the immutable draft source
-      // can only be carried by this trusted route.
-      batch.create(worldRef.collection('draftBaselines').doc('root'), {
-        worldId,
-        release: simulationCopy.draftRoot,
-      });
-    }
-    await batch.commit();
+    await commitWrites((batch) => {
+      batch.create(worldRef, metadata);
+      for (const document of documents) {
+        batch.create(
+          worldRef
+            .collection(CONTRACT_BASELINES_SUBCOLLECTION)
+            .doc(document.shardId),
+          document
+        );
+      }
+      if (draftBaseline) {
+        batch.create(worldRef.collection('draftBaselines').doc('root'), {
+          worldId,
+          release: draftBaseline.baseline,
+        });
+        for (const [code, team] of Object.entries(
+          draftBaseline.baseline.initialTeams
+        ))
+          batch.create(worldRef.collection('teams').doc(code), team);
+        for (const [id, entitlement] of Object.entries(
+          draftBaseline.baseline.retainedEntitlements
+        ))
+          batch.create(
+            worldRef.collection('entitlements').doc(id),
+            entitlement
+          );
+      }
+      if (simulationDraft) {
+        batch.create(worldRef.collection('draftBaselines').doc('root'), {
+          worldId,
+          release: simulationDraft.baseline,
+        });
+        for (const [id, entitlement] of Object.entries(
+          simulationDraft.baseline.retainedEntitlements
+        ))
+          batch.create(
+            worldRef.collection('entitlements').doc(id),
+            entitlement
+          );
+      }
+      if (simulationCopy?.draftRoot) {
+        // The client copies mutable world state; the immutable draft source
+        // can only be carried by this trusted route.
+        batch.create(worldRef.collection('draftBaselines').doc('root'), {
+          worldId,
+          release: simulationCopy.draftRoot,
+        });
+      }
+    });
     return {
       ok: true,
       worldId,

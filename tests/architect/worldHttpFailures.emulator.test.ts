@@ -4,6 +4,7 @@ import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { createArchitectWorldHandler } from '../../server/architectWorld';
+import { withWorldTransactionFault } from '../helpers/worldTransactionFaults';
 import { readPrivateWorldPackages } from '../../functions/src/architect/privateWorldPackages';
 import {
   WORLD_ADMISSION_COLLECTION,
@@ -23,7 +24,8 @@ describe.skipIf(process.env.SCOUTZERO_WORLD_HTTP_PROOF !== 'true')(
       SCOUTZERO_WORLD_HTTP_ENABLED: 'true',
       SCOUTZERO_WORLD_LOCAL_PROOF: 'true',
       GCLOUD_PROJECT: 'demo-architect-review',
-      FIRESTORE_EMULATOR_HOST: '127.0.0.1:8082',
+      FIRESTORE_EMULATOR_HOST:
+        process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8082',
       FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
       SCOUTZERO_WORLD_OWNER_UID: owner,
       SCOUTZERO_WORLD_ORIGIN: 'http://127.0.0.1:5173',
@@ -108,18 +110,7 @@ describe.skipIf(process.env.SCOUTZERO_WORLD_HTTP_PROOF !== 'true')(
       async (code) => {
         const id = `quota-during-staging-${code}`;
         await clear(id);
-        const blocked = Object.create(db) as typeof db;
-        let batches = 0;
-        blocked.batch = () => {
-          const batch = db.batch();
-          const commit = batch.commit.bind(batch);
-          batch.commit = async () => {
-            if (++batches === 3)
-              throw Object.assign(new Error('PRIVATE_UPSTREAM'), { code });
-            return commit();
-          };
-          return batch;
-        };
+        const blocked = withWorldTransactionFault(db, id, 'stage', code);
         expect(await request(blocked, id)).toEqual({
           status: 503,
           body: '{"error":"world-service-unavailable"}',

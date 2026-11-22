@@ -61,7 +61,7 @@ describe('durable world admission', () => {
         ?.worlds
     ).toBe(1);
   });
-  it('enforces the minute limit and three lifetime slots even after failure', async () => {
+  it('enforces the minute limit and three occupied slots including failed creations', async () => {
     await reserveWorldInitialization(db, uid, ids[0], 'a', 100000);
     await expect(
       reserveWorldInitialization(db, uid, ids[1], 'b', 100001)

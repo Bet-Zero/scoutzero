@@ -1,8 +1,9 @@
 /** Synthetic recovery faults at real Firestore boundaries; no private packages. */
-import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { beforeAll, beforeEach, afterAll, describe, it, expect } from 'vitest';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { createHash } from 'node:crypto';
+import { withWorldTransactionFault } from '../helpers/worldTransactionFaults';
 import {
   createArchitectWorldHandler,
   type WorldHttpDependencies,
@@ -31,6 +32,24 @@ const env = {
 beforeAll(() => {
   if (!/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? ''))
     throw new Error('Loopback emulator required');
+});
+beforeEach(async () => {
+  for (const collection of [
+    'architect_worlds',
+    'architect_worldInitializationClaims',
+  ]) {
+    const key = collection === 'architect_worlds' ? 'createdBy' : 'uid';
+    for (const doc of (
+      await db
+        .collection(collection)
+        .where(key, '==', env.SCOUTZERO_WORLD_OWNER_UID)
+        .get()
+    ).docs)
+      await db.recursiveDelete(doc.ref);
+  }
+  await db
+    .doc('architect_worldAdmission/' + env.SCOUTZERO_WORLD_OWNER_UID)
+    .delete();
 });
 afterAll(async () => {
   await db.terminate();
@@ -191,21 +210,7 @@ describe('HTTP recovery against actual emulator commits', () => {
   it('returns success when only post-commit claim bookkeeping fails, and replay spends no further slot', async () => {
     const id = 'recovery-status';
     await clear(id);
-    const wrapped = Object.create(db) as typeof db;
-    wrapped.collection = ((path: string) => {
-      const collection = db.collection(path);
-      if (path === 'architect_worldInitializationClaims') {
-        const original = collection.doc.bind(collection);
-        collection.doc = ((worldId: string) => {
-          const ref = original(worldId);
-          ref.update = (async () => {
-            throw new Error('synthetic status failure');
-          }) as typeof ref.update;
-          return ref;
-        }) as typeof collection.doc;
-      }
-      return collection;
-    }) as typeof db.collection;
+    const wrapped = withWorldTransactionFault(db, id, 'finish');
     const run = harness(wrapped);
     expect((await run.call(id)).status).toBe(200);
     expect((await db.doc(`architect_worlds/${id}`).get()).exists).toBe(true);
@@ -219,20 +224,10 @@ describe('HTTP recovery against actual emulator commits', () => {
         ?.attempts
     ).toBe(1);
   });
-  it('resumes a failed stage with the same ID, keeps the minute gate, and consumes only one lifetime slot', async () => {
+  it('resumes a failed stage with the same ID, keeps the minute gate, and consumes only one active slot', async () => {
     const id = 'recovery-stage';
     await clear(id);
-    const wrapped = Object.create(db) as typeof db;
-    let count = 0;
-    wrapped.batch = () => {
-      const batch = db.batch();
-      const commit = batch.commit.bind(batch);
-      batch.commit = async () => {
-        if (++count === 3) throw new Error('synthetic stage failure');
-        return commit();
-      };
-      return batch;
-    };
+    const wrapped = withWorldTransactionFault(db, id, 'stage');
     const run = harness(wrapped);
     expect((await run.call(id)).status).toBe(503);
     expect((await db.doc(`architect_worlds/${id}`).get()).exists).toBe(false);
@@ -257,24 +252,7 @@ describe('HTTP recovery against actual emulator commits', () => {
   it('recognizes an atomic root after its commit acknowledgement is lost', async () => {
     const id = 'recovery-commit';
     await clear(id);
-    const wrapped = Object.create(db) as typeof db;
-    wrapped.batch = () => {
-      const batch = db.batch();
-      const commit = batch.commit.bind(batch);
-      const create = batch.create.bind(batch);
-      let createsRoot = false;
-      batch.create = (ref, data) => {
-        if (ref.path === `architect_worlds/${id}`) createsRoot = true;
-        return create(ref, data);
-      };
-      batch.commit = async () => {
-        const result = await commit();
-        if (createsRoot)
-          throw new Error('synthetic lost commit acknowledgement');
-        return result;
-      };
-      return batch;
-    };
+    const wrapped = withWorldTransactionFault(db, id, 'root-ack');
     const run = harness(wrapped);
     expect((await run.call(id)).status).toBe(503);
     const before = await readWorldInventory(db.doc(`architect_worlds/${id}`));

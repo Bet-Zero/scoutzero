@@ -420,3 +420,126 @@ describe('HTTP creation identity and recovery', () => {
     expect(readPendingWorldCreation(input.userId)).not.toBeNull();
   });
 });
+
+it('explicit discard cleans a failed ID before allowing another creation', async () => {
+  const { discardPendingWorldCreation } = await import(
+    '@/features/architect/utils/worldManager.core'
+  );
+  const requests: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      requests.push(body);
+      if (body.operation === 'cleanup')
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ ok: true, worldId: body.worldId, done: true }),
+        };
+      return response(503);
+    })
+  );
+  await expect(createWorld(input)).rejects.toThrow();
+  const first = readPendingWorldCreation(input.userId)!;
+  await discardPendingWorldCreation(input.userId);
+  expect(readPendingWorldCreation(input.userId)).toBeNull();
+  await expect(createWorld(input)).rejects.toThrow();
+  expect(requests[1]).toEqual({
+    operation: 'cleanup',
+    worldId: first.worldId,
+    userId: input.userId,
+  });
+  expect(requests[2].worldId).not.toBe(first.worldId);
+});
+it.each([false, 'lost-response', 'saved-world'])(
+  'keeps pending identity when discard is incomplete or refused: %s',
+  async (result) => {
+    const { discardPendingWorldCreation } = await import(
+      '@/features/architect/utils/worldManager.core'
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response(503))
+    );
+    await expect(createWorld(input)).rejects.toThrow();
+    const first = readPendingWorldCreation(input.userId);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        result === 'lost-response'
+          ? response(503)
+          : result === 'saved-world'
+            ? response(409)
+            : {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                  ok: true,
+                  worldId: first!.worldId,
+                  done: false,
+                }),
+              }
+      )
+    );
+    await expect(discardPendingWorldCreation(input.userId)).rejects.toThrow();
+    expect(readPendingWorldCreation(input.userId)).toEqual(first);
+  },
+  10000
+);
+it('discard never clears an old account request after the signed-in account changes', async () => {
+  const { discardPendingWorldCreation } = await import(
+    '@/features/architect/utils/worldManager.core'
+  );
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => response(503))
+  );
+  await expect(createWorld(input)).rejects.toThrow();
+  const first = readPendingWorldCreation(input.userId)!;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      Object.assign(auth, { currentUser: { uid: 'different-account' } });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, worldId: first.worldId, done: true }),
+      };
+    })
+  );
+  await expect(discardPendingWorldCreation(input.userId)).rejects.toThrow(
+    'Sign in'
+  );
+  expect(readPendingWorldCreation(input.userId)).toEqual(first);
+});
+it('offers a visible discard action after failed automatic recovery and clears it only on confirmed cleanup', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      return body.operation === 'cleanup'
+        ? {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, worldId: body.worldId, done: true }),
+          }
+        : response(503);
+    })
+  );
+  await expect(createWorld(input)).rejects.toThrow();
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  const select = vi.fn();
+  render(<Selector onSelect={select} />);
+  const discard = await screen.findByRole('button', {
+    name: 'Discard failed creation',
+  });
+  await waitFor(() =>
+    expect((discard as HTMLButtonElement).disabled).toBe(false)
+  );
+  fireEvent.click(discard);
+  await waitFor(() =>
+    expect(readPendingWorldCreation(input.userId)).toBeNull()
+  );
+  expect(select).not.toHaveBeenCalled();
+});

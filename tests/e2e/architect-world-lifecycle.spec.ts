@@ -1,0 +1,258 @@
+/** Actual recovered current packages: lifecycle integration only, not original-world preservation evidence. */
+import { test, expect, type Page } from '@playwright/test';
+import {
+  getReviewAdminDb,
+  getWorldEventDocuments,
+  getWorldTeamDocument,
+} from './helpers/architectReviewWorld';
+import { canonicalStringify } from '../../src/features/architect/utils/contractSource/deterministicDigest';
+
+test.skip(
+  process.env.SCOUTZERO_WORLD_LIFECYCLE_PROOF !== 'true',
+  'Requires private current packages and the owner-only HTTP emulator proof.'
+);
+test.use({ viewport: { width: 1280, height: 720 }, actionTimeout: 30000 });
+test.setTimeout(300000);
+const owner = 'zero_billing_owner';
+async function signIn(page: Page) {
+  await page.goto('/gm/CHI?season=2027');
+  const uid = await page.evaluate(async () => {
+    const { auth } = await import('/src/firebaseConfig.ts');
+    const { getAnonymousUser } = await import('/src/shared/hooks/useAuth.ts');
+    // Finish ordinary guest bootstrap before the explicit owner sign-in.
+    await getAnonymousUser();
+    const { signInWithEmailAndPassword } = await import(
+      '/node_modules/.vite/deps/firebase_auth.js'
+    );
+    return (
+      await signInWithEmailAndPassword(
+        auth,
+        'zero-billing-owner@example.test',
+        'local-proof-only-password'
+      )
+    ).user.uid;
+  });
+  expect(uid).toBe(owner);
+}
+
+test('owner trades and reloads an actual current world, deletes it, then creates another world', async ({
+  page,
+}) => {
+  await signIn(page);
+  await expect(page.getByTestId('cockpit-world-menu-trigger')).toBeVisible({
+    timeout: 60000,
+  });
+  await page.getByTestId('cockpit-world-menu-trigger').click();
+  await page.getByTitle('Create new world', { exact: true }).click();
+  await page
+    .getByLabel('World Name', { exact: true })
+    .fill('Free owner-only current world');
+  const sent: Array<Record<string, unknown>> = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/architect/world'))
+      sent.push(request.postDataJSON());
+  });
+  page.once('dialog', (dialog) => dialog.accept());
+  const creationResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/architect/world') &&
+      response.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  expect((await creationResponse).status()).toBe(200);
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 60000 });
+  expect(sent).toHaveLength(1);
+  const worldId = await page.evaluate(
+    (uid) => localStorage.getItem(`architect.activeWorldId.${uid}`)!,
+    owner
+  );
+  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const metadata = (await root.get()).data()!;
+  expect(metadata).toMatchObject({
+    createdBy: owner,
+    currentSeason: '2026-27',
+    asOfDate: '2026-11-14',
+    simulationFinancialBaseline: {
+      sha256:
+        '577df3452b1c54cfcd80d14d96f7b1adb35dff2c967bf386c7171190eee05419',
+    },
+    draftBaseline: {
+      sha256:
+        '43d725448133c416b93af0d82529cb3f6c6021a01be07a6030b493987ffbf331',
+    },
+  });
+  expect((await root.collection('teams').get()).size).toBe(30);
+  expect((await root.collection('entitlements').get()).size).toBe(332);
+  const replay = await page.evaluate(async (body) => {
+    const { auth } = await import('/src/firebaseConfig.ts');
+    const response = await fetch('/api/architect/world', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${await auth.currentUser!.getIdToken()}`,
+      },
+      body: JSON.stringify(body),
+    });
+    return { status: response.status, body: await response.json() };
+  }, sent[0]);
+  expect(replay).toEqual({ status: 200, body: { ok: true, worldId } });
+  const immutable = canonicalStringify(
+    (await root.collection('draftBaselines').doc('root').get()).data()
+  );
+  await page.getByTestId('cockpit-world-menu-trigger').click();
+  const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
+  await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+  await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
+    timeout: 60000,
+  });
+  const picker = dialog
+    .locator('label', { hasText: /^Select Team$/ })
+    .locator('xpath=following-sibling::select[1]');
+  if (!(await picker.count()))
+    await dialog.getByRole('button', { name: /^Add Team$/i }).click();
+  await picker.first().selectOption('raptors');
+  for (const [code, id, to] of [
+    ['CHI', 'ent:CHI:2028:1:own:2afbfb42', 'Toronto Raptors'],
+    ['TOR', 'ent:TOR:2028:1:own:d917f516', 'Chicago Bulls'],
+  ]) {
+    const card = dialog.getByTestId(`trade-team-card-${code}`);
+    await card
+      .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+      .click();
+    await card
+      .locator(`[data-entitlement-id="${id}"]`)
+      .getByRole('button', { name: '•••' })
+      .click();
+    await page
+      .getByRole('button', { name: new RegExp(`^Trade to ${to}$`, 'i') })
+      .click();
+  }
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeEnabled({ timeout: 60000 });
+  await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
+  await expect
+    .poll(async () => (await getWorldEventDocuments(worldId)).length, {
+      timeout: 60000,
+    })
+    .toBe(1);
+  await expect(dialog).toBeHidden();
+  await page.reload();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 60000 });
+  if (!(await dialog.isVisible()))
+    await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+  const reloadedCard = dialog.getByTestId('trade-team-card-CHI');
+  await expect(reloadedCard).toBeVisible({ timeout: 60000 });
+  await reloadedCard
+    .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+    .click();
+  await expect(
+    reloadedCard.locator('[data-entitlement-id="ent:TOR:2028:1:own:d917f516"]')
+  ).toBeVisible();
+  expect(
+    (await getWorldTeamDocument(worldId, 'CHI'))!.entitlementIds
+  ).toContain('ent:TOR:2028:1:own:d917f516');
+  expect(
+    (await getWorldTeamDocument(worldId, 'TOR'))!.entitlementIds
+  ).toContain('ent:CHI:2028:1:own:2afbfb42');
+  expect(
+    (await getWorldEventDocuments(worldId))[0].metadata.draftReviewReceipt
+      .movements
+  ).toHaveLength(2);
+  expect(
+    canonicalStringify(
+      (await root.collection('draftBaselines').doc('root').get()).data()
+    )
+  ).toBe(immutable);
+  for (const path of [
+    '/.scoutzero-dev/world-packages/financial-current-v4.json',
+    `/@fs${process.cwd()}/.scoutzero-dev/world-packages/draft-connected-v5.json`,
+  ]) {
+    const response = await page.request.get(path);
+    expect(response.status()).toBe(403);
+  }
+
+  await page.keyboard.press('Escape');
+  if (await dialog.isVisible())
+    await dialog.getByRole('button', { name: /Close/i }).last().click();
+  await page.getByTestId('cockpit-world-menu-trigger').click();
+  await page.getByTitle('World actions', { exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Delete Permanently', exact: true })
+    .click();
+  await page.locator('#delete-confirm').fill('DELETE');
+  await page
+    .getByRole('button', { name: 'Delete Permanently', exact: true })
+    .click();
+  await expect
+    .poll(async () => (await root.get()).exists, { timeout: 90000 })
+    .toBe(false);
+  await expect
+    .poll(
+      async () =>
+        (
+          await getReviewAdminDb()
+            .doc('architect_worldInitializationClaims/' + worldId)
+            .get()
+        ).data()?.status
+    )
+    .toBe('deleted');
+  expect((await root.listCollections()).length).toBe(0);
+  if (!(await page.getByTitle('Create new world', { exact: true }).isVisible()))
+    await page.getByTestId('cockpit-world-menu-trigger').click();
+  await page.getByTitle('Create new world', { exact: true }).click();
+  await page
+    .getByLabel('World Name', { exact: true })
+    .fill('Replacement current world');
+  page.once('dialog', (dialog) => dialog.accept());
+  // Admission uses real time. Wait only for the remainder of the one-minute creation interval.
+  const lastStartedAt = (
+    await getReviewAdminDb()
+      .doc('architect_worldAdmission/' + owner)
+      .get()
+  ).data()!.lastStartedAt;
+  const remaining = Math.max(0, 60000 - (Date.now() - lastStartedAt));
+  if (remaining) await page.waitForTimeout(remaining + 50);
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect
+    .poll(
+      async () => {
+        const id = await page.evaluate(
+          (uid) => localStorage.getItem(`architect.activeWorldId.${uid}`),
+          owner
+        );
+        return Boolean(id && id !== worldId);
+      },
+      { timeout: 60000 }
+    )
+    .toBe(true);
+  const replacement = await page.evaluate(
+    (uid) => localStorage.getItem(`architect.activeWorldId.${uid}`),
+    owner
+  );
+  expect(replacement).toBeTruthy();
+  expect(
+    (
+      await getReviewAdminDb()
+        .doc('architect_worlds/' + replacement)
+        .get()
+    ).data()?.simulationFinancialBaseline.sha256
+  ).toBe(metadata.simulationFinancialBaseline.sha256);
+  expect(
+    (
+      await getReviewAdminDb()
+        .doc('architect_worldAdmission/' + owner)
+        .get()
+    ).data()?.activeWorldIds
+  ).toEqual([replacement]);
+  await page.reload();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 60000 });
+  await page.screenshot({ path: '.scoutzero-dev/lifecycle-world-proof.png' });
+});

@@ -137,23 +137,20 @@ that changes the plan.
       batch about 7.33 MB; source storage about 14 MB/world before indexes.
       Local bundled-code dependency trace plus private assets totals 37.4 MB;
       this is not a hosted Vercel build or an index-inclusive Firestore size proof.
-      The November 17 independent Codex review of PR #662 returned REVISE:
-      ordinary retries lost their creation identity and the original-world
-      preservation assertion could accept missing originals. Corrections retain
-      owner-scoped requests through reload until selection is persisted; the
-      preservation proof now requires a separately pinned original inventory.
-      Focused synthetic recovery/preservation tests do not replace the private
-      package journey, whose strengthened preservation proof still needs its
-      retained original inventory and an authorized rerun. The owner authorized
-      a fresh independent Codex re-review when Claude is unavailable; author
-      tests are not acceptance and the Claude-specific workflow is unchanged.
-      Required independent exact-candidate acceptance remains pending. Live
-      Vercel-to-Spark identity/IAM, fresh billing-disabled/usage confirmation,
-      private build-asset provisioning and hosted runtime proof remain launch
-      gates. No no-billing Google federation setup is claimed. Existing purge
-      and failed-copy cleanup still use Firebase Functions and are outside this
-      create/trade/save/reload proof. Production remains off; PR #660, billing,
-      package upload, public activation and migration remain held.
+      The November 17 corrections were independently accepted on exact candidate
+      `e97878d`; prior Claude publication failures and Codex verdicts are retained
+      in PR #662. The strengthened private-original journey is still blocked:
+      its original historical/pre-B5 saved-world export and independently pinned
+      inventory were not recovered by the November 22 bounded #659/session search.
+      No replacement originals or inventory are preservation evidence.
+      The owner authorized the bounded lifecycle repair within #662: reusable
+      slots, separate daily work limits, leased initialization, fenced/resumable
+      owner deletion and explicit failed-creation cleanup over the same HTTP
+      adapter. Required focused proof and fresh independent review are tracked in
+      #662; they do not establish hosted completion or weaken admission/Rules.
+      Live identity/IAM, billing-disabled/shared headroom, protected preview,
+      private provisioning and hosted runtime proof remain separate gates.
+      PR #660, billing, deployment, public activation and migration remain held.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).

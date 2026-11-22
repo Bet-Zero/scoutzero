@@ -34,6 +34,7 @@ import {
   getWorldMetadata,
   purgeWorld,
   recoverPendingWorldCreation,
+  discardPendingWorldCreation,
   readPendingWorldCreation,
 } from '@/features/architect/utils/worldManager';
 import { DeleteWorldModal } from './DeleteWorldModal';
@@ -146,6 +147,8 @@ export function WorldSelector({
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPendingCreation, setHasPendingCreation] = useState(false);
+  const currentWorldId = useRef(worldId);
+  currentWorldId.current = worldId;
   const currentUserId = useRef(userId);
   currentUserId.current = userId;
   const isMounted = useRef(false);
@@ -298,6 +301,34 @@ export function WorldSelector({
     },
     [userId, loadWorlds, commitActiveWorldSelection]
   );
+  const discardPendingCreation = useCallback(async () => {
+    if (
+      !userId ||
+      !window.confirm(
+        'Discard this unfinished creation? A saved world will not be deleted.'
+      )
+    )
+      return;
+    const generation = recoveryGeneration.current;
+    const stillCurrent = () =>
+      isMounted.current &&
+      recoveryGeneration.current === generation &&
+      currentUserId.current === userId;
+    setIsSubmitting(true);
+    try {
+      await discardPendingWorldCreation(userId);
+      if (!stillCurrent()) return;
+      setHasPendingCreation(false);
+      setError('');
+      setNewWorldName('');
+      setNewWorldDescription('');
+      setShowCreateModal(false);
+    } catch (err) {
+      if (stillCurrent()) setError((err as Error).message);
+    } finally {
+      if (stillCurrent()) setIsSubmitting(false);
+    }
+  }, [userId]);
   const recoveryAction = useRef(retryPendingCreation);
   recoveryAction.current = retryPendingCreation;
   useEffect(() => {
@@ -513,14 +544,23 @@ export function WorldSelector({
     }
     if (!confirmContextExit('delete-world')) return;
 
+    const generation = recoveryGeneration.current;
+    const stillCurrent = () =>
+      isMounted.current &&
+      recoveryGeneration.current === generation &&
+      currentUserId.current === userId;
     setIsSubmitting(true);
     setError('');
 
     try {
       const result = (await purgeWorld(worldId)) as PurgeResultLike;
 
+      if (!stillCurrent()) return;
       if (result.ok) {
-        clearActiveWorldSelection({ skipGuard: true });
+        if (currentWorldId.current === worldId)
+          currentSelectionAction.current(null, 'delete-world');
+        setShowDeleteModal(false);
+        setDeleteConfirmText('');
         await loadWorlds();
       } else if (result.queued) {
         setError(result.message || '');
@@ -530,15 +570,16 @@ export function WorldSelector({
     } catch (err) {
       const errorLike = err as ErrorLike;
       console.error('Failed to delete world:', err);
-      setError(errorLike.message || 'Failed to delete world');
+      if (stillCurrent())
+        setError(errorLike.message || 'Failed to delete world');
     } finally {
-      setIsSubmitting(false);
+      if (stillCurrent()) setIsSubmitting(false);
     }
   }, [
     worldId,
+    userId,
     worlds,
     deleteConfirmText,
-    clearActiveWorldSelection,
     confirmContextExit,
     loadWorlds,
   ]);
@@ -777,6 +818,16 @@ export function WorldSelector({
         </button>
       )}
 
+      {hasPendingCreation && !showCreateModal && (
+        <button
+          type="button"
+          disabled={isSubmitting}
+          className="text-xs text-red-300 underline"
+          onClick={() => void discardPendingCreation()}
+        >
+          Discard failed creation
+        </button>
+      )}
       {showCreateModal && (
         <WorldModal
           title="Create New World"
@@ -788,6 +839,16 @@ export function WorldSelector({
           submitDisabled={!newWorldName.trim()}
         >
           <div className="space-y-3">
+            {hasPendingCreation && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                className="text-xs text-red-300 underline"
+                onClick={() => void discardPendingCreation()}
+              >
+                Discard failed creation
+              </button>
+            )}
             <div>
               <label
                 htmlFor="create-world-name"

@@ -20,9 +20,14 @@ import {
   type WriteBatch,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { initializeWorldOverHttp, WorldHttpError } from './worldHttpClient';
+import {
+  initializeWorldOverHttp,
+  removeWorldOverHttp,
+  WorldHttpError,
+} from './worldHttpClient';
 import {
   readPendingWorldCreation,
+  acknowledgeWorldCreation,
   retainWorldCreation,
   withWorldCreationLock,
   type PendingWorldCreation,
@@ -857,6 +862,21 @@ export async function recoverPendingWorldCreation(userId: string) {
   });
 }
 
+/** Explicit discard clears a request only after trusted cleanup confirms completion. */
+export async function discardPendingWorldCreation(userId: string) {
+  return withWorldCreationLock(userId, async () => {
+    requireCreationOwner(userId);
+    const pending = readPendingWorldCreation(userId);
+    if (!pending) return;
+    if (!(await removeWorldOverHttp(pending.worldId, true)))
+      throw new Error(
+        'Cleanup is still in progress. Try discarding this creation again.'
+      );
+    requireCreationOwner(userId);
+    acknowledgeWorldCreation(userId, pending.worldId);
+  });
+}
+
 export async function getWorldMetadata(
   worldId: string | null | undefined
 ): Promise<WorldMetadata> {
@@ -1048,6 +1068,21 @@ export async function purgeWorld(
     );
   }
 
+  if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true') {
+    const done = await removeWorldOverHttp(
+      worldId,
+      options.cleanupPartialBranch === true,
+      options.expectedParentWorldId
+    );
+    return {
+      ok: done,
+      queued: !done,
+      message: done
+        ? 'World deleted.'
+        : 'Deletion is still in progress. Try deleting this world again.',
+      details: { worldDeleted: done },
+    };
+  }
   const purgeFunction = httpsCallable(functions, 'purgeArchitectWorld');
 
   try {

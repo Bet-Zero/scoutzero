@@ -22,7 +22,15 @@ import {
   reserveWorldInitialization,
   finishWorldInitialization,
   WorldAdmissionError,
+  assertWorldInitializationLease,
 } from '../functions/src/architect/worldAdmission';
+
+import {
+  removeArchitectWorld,
+  type RemovalInput,
+  type WorldTreePager,
+} from '../functions/src/architect/worldLifecycle';
+import { createWorldTreePager } from './worldTreePager';
 
 type Request = Pick<
   IncomingMessage,
@@ -68,11 +76,12 @@ export type WorldHttpDependencies = {
   verifyToken: (token: string) => Promise<DecodedIdToken>;
   packages: () => ReturnType<typeof readPrivateWorldPackages>;
   now?: () => number;
+  pager?: WorldTreePager;
 };
 
 async function readInput(
   req: Request
-): Promise<InitializeArchitectWorldRequest> {
+): Promise<InitializeArchitectWorldRequest | RemovalInput> {
   let body = req.body;
   if (body === undefined) {
     const chunks: Buffer[] = [];
@@ -99,6 +108,24 @@ async function readInput(
   )
     throw new WorldAdmissionError(400, 'invalid-request');
   const data = body as Record<string, unknown>;
+  if (data.operation !== undefined) {
+    if (
+      !['delete', 'cleanup'].includes(data.operation as string) ||
+      Object.keys(data).some(
+        (key) =>
+          !['operation', 'worldId', 'userId', 'expectedParentWorldId'].includes(
+            key
+          )
+      ) ||
+      typeof data.worldId !== 'string' ||
+      !ID.test(data.worldId) ||
+      (data.expectedParentWorldId !== undefined &&
+        (typeof data.expectedParentWorldId !== 'string' ||
+          !ID.test(data.expectedParentWorldId)))
+    )
+      throw new WorldAdmissionError(400, 'invalid-request');
+    return data as RemovalInput;
+  }
   const allowed = [
     'worldId',
     'worldName',
@@ -127,6 +154,7 @@ export function createArchitectWorldHandler(
   dependencies: WorldHttpDependencies,
   env: NodeJS.ProcessEnv
 ) {
+  let pager = dependencies.pager;
   return async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
@@ -176,7 +204,7 @@ export function createArchitectWorldHandler(
         reply(403, { error: 'owner-admission-required' });
         return;
       }
-      let data: InitializeArchitectWorldRequest;
+      let data: InitializeArchitectWorldRequest | RemovalInput;
       try {
         data = await readInput(req);
       } catch (e) {
@@ -185,6 +213,19 @@ export function createArchitectWorldHandler(
       }
       if (data.userId !== user.uid) {
         reply(403, { error: 'owner-mismatch' });
+        return;
+      }
+      if ('operation' in data) {
+        const result = await removeArchitectWorld(
+          dependencies.db,
+          data,
+          (pager ??= createWorldTreePager(
+            config.projectId,
+            config.local ? env.FIRESTORE_EMULATOR_HOST : undefined
+          )),
+          dependencies.now ?? Date.now
+        );
+        reply(200, { ok: true, worldId: data.worldId, ...result });
         return;
       }
       const packages = dependencies.packages(); // Corrupt/missing packages cause no admission or world writes.
@@ -196,7 +237,8 @@ export function createArchitectWorldHandler(
         user.uid,
         data.worldId,
         hash,
-        (dependencies.now ?? Date.now)()
+        (dependencies.now ?? Date.now)(),
+        data.parentWorldId ?? null
       );
       if (!reservation.replay) {
         try {
@@ -213,12 +255,25 @@ export function createArchitectWorldHandler(
                   : httpRetainedContractRegistry.loadDefault(),
               financialSha256: CURRENT_WORLD_PACKAGES.financial.sha256,
               serverTimestamp: () => FieldValue.serverTimestamp(),
+              commitWrites: async (build) => {
+                await dependencies.db.runTransaction(async (tx) => {
+                  await assertWorldInitializationLease(
+                    dependencies.db,
+                    tx,
+                    data.worldId,
+                    reservation.lease!,
+                    (dependencies.now ?? Date.now)()
+                  );
+                  build(tx);
+                });
+              },
             }
           );
           await finishWorldInitialization(
             dependencies.db,
             data.worldId,
-            'complete'
+            'complete',
+            reservation.lease
           ).catch(() => {}); // The service already confirmed the atomic root commit.
         } catch (error) {
           // A committed world is authoritative even if its response/status update was lost.
@@ -226,7 +281,8 @@ export function createArchitectWorldHandler(
           await finishWorldInitialization(
             dependencies.db,
             data.worldId,
-            'failed'
+            'failed',
+            reservation.lease
           ).catch(() => {});
           throw error;
         }
