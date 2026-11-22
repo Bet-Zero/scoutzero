@@ -1,79 +1,61 @@
 # HoopZero
 
-HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool but exposes a read-only interface backed entirely by Firebase. All player evaluations, roles, grades and contract details are fetched from Firestore, allowing fans and analysts to explore a flattened set of scouting data.
+HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool and also includes **Architect**, a GM toolkit for building rosters and making trades under the salary cap. Player evaluations, roles, grades and contract details come from Firestore.
 
-## TypeScript Status
-
-TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active repo-wide campaign. Do not reopen TypeScript hardening unless a documented gate regresses.
+AI agents working on this repository: start with [AGENTS.md](AGENTS.md).
 
 ## Tech Stack
 
-- **React** with **Vite** for fast development
-- **Tailwind CSS** for styling
-- **Firebase** (Firestore) as the data store
-- Small helper scripts in **Python** to upload data using Firebase Admin
+- **React 18** with **Vite** and **TypeScript** (strict mode)
+- **Tailwind CSS 3** for styling
+- **Zod** schemas in `src/schemas/` as the data contracts
+- **Firebase**: Firestore (data), Auth (sign-in) and Cloud Functions (trusted server work)
+- **Vercel** hosts the website; merging to `main` updates the live site
+- **Vitest** and **Playwright** for tests
 
-## 🏗️ Monorepo Structure
+## Repository Structure
 
-This project is organized as a **monorepo** containing multiple subsystems that work together:
+### 1. Frontend application (`/src`)
 
-### 1. Frontend Application (`/src`)
+- React web app for player scouting, lists, tier lists, the player ranker and the Architect GM dashboard
+- Entry points: `src/main.tsx` and `src/App.tsx`; Firebase setup in `src/firebaseConfig.ts`
 
-- **Purpose**: React web application for player scouting and GM dashboard
-- **Entry point**: `npm run dev`
-- **Tech stack**: React, Vite, Tailwind, Zustand, Firebase
-- **Deployment**: Firebase Hosting
+### 2. Data pipelines (`/player-scrape`, `/team-scrape`)
 
-### 2. Data Pipelines (`/player-scrape`, `/team-scrape`)
+- Scrape and normalize NBA data from external sources (TypeScript, Node.js)
+- Run through npm scripts; see [docs/guides/SCRIPTS.md](docs/guides/SCRIPTS.md) and [docs/operations/NBA_MAINTENANCE.md](docs/operations/NBA_MAINTENANCE.md)
+- Output: Firestore
 
-- **Purpose**: Scrape and normalize NBA data from external sources
-- **Entry points**: See npm scripts (e.g., `npm run team:salaryswish`, `npm run contracts:run`)
-- **Tech stack**: TypeScript, Node.js
-- **Output**: Firestore database
+### 3. Server code (`/functions`, `/server`, `/api`)
 
-### 3. Cloud Functions (`/functions`)
+- Firebase Cloud Functions and server-side handlers for trusted Architect work such as creating saved worlds
+- Functions have their own `package.json`; build and test them from `functions/`
 
-- **Purpose**: Backend API and scheduled tasks
-- **Entry point**: `cd functions && npm run dev`
-- **Tech stack**: Node.js, Express, Firebase Functions
-- **Deployment**: `firebase deploy --only functions`
+### 4. Scripts and utilities (`/scripts`)
 
-### 4. Scripts & Utilities (`/scripts`)
+- Development, validation, review and data-maintenance scripts (TypeScript, Node.js)
 
-- **Purpose**: One-off development and validation scripts
-- **Tech stack**: TypeScript, Node.js
-
-### Data Flow
+### Data flow
 
 ```text
-External Sources → Data Pipelines → Firestore (SSOT) → Frontend
+External Sources → Data Pipelines → Firestore (source of truth) → Frontend
                                          ↕
-                                   Cloud Functions
+                                  Functions / server
 ```
 
-**Key principle**: Firestore serves as the Single Source of Truth (SSOT). Data pipelines write to Firestore, and the frontend reads from it. Cloud Functions provide backend logic and scheduled data updates.
+Firestore is the single source of truth. Source collections such as `players_v2` are read-only for the app; user-created content (lists, tier lists, rosters, saved Architect worlds) is read-write.
 
-📄 For contribution guidelines and detailed development setup, see [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md)
+For contribution guidelines, see [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md).
 
 ## Setup
 
-1. Install dependencies:
+1. Install dependencies (Node.js 24.5 or newer):
 
    ```bash
    npm install
    ```
 
-   This command installs both production and development packages, including
-   ESLint plugins used by `npm run lint`.
-
-   If the linter complains that `eslint-plugin-react` is missing, make sure
-   dev dependencies were installed. You can rerun the install with:
-
-   ```bash
-   npm install --include=dev
-   ```
-
-2. Configure Firebase by creating a `.env` file in the project root with the following keys:
+2. Configure Firebase by creating a `.env` file in the project root:
 
    ```text
    VITE_FIREBASE_API_KEY=<your key>
@@ -84,67 +66,57 @@ External Sources → Data Pipelines → Firestore (SSOT) → Frontend
    VITE_FIREBASE_APP_ID=<app id>
    ```
 
-   For running the Python upload helpers, place your `serviceAccountKey.json` file inside `src/`.
-
 3. Start the development server:
 
    ```bash
    npm run dev
    ```
 
-The app will be available at `http://localhost:5173` by default.
+   This runs against the local Firebase emulators (`VITE_USE_FIREBASE_EMULATORS=true`). The app is at `http://localhost:5173`. To run the full app with real data in a cloud session, follow [docs/operations/CLOUD_DEVELOPMENT.md](docs/operations/CLOUD_DEVELOPMENT.md).
 
 ## Folder Structure
 
 ```text
-public/             Static assets and exported player JSON
-  assets/           Team logos & headshots
-  fonts/            Web fonts
+public/             Static assets (team logos, headshots, fonts)
 src/
-  components/       Layout wrapper and shared UI pieces
-  features/         Domain features (table, profile, roster, lists, filters, tierMaker)
-  hooks/            Custom React hooks for Firebase data and filtering
+  components/       Diagnostic tools
+  config/           Feature flags and runtime config
+  constants/        Shared constants, including Firestore collection names
+  core/             Site-wide layout
+  data/             Firestore path helpers
+  features/         Feature modules (architect, filters, lists, profile, ranker, roster, tierMaker, ...)
+  firebase/         Firestore read/write helpers
+  fonts/            Embedded font data for image exports
   pages/            Route-level pages
-  utils/            Helper utilities for filtering, formatting and roster logic
-  constants/        Shared constants (role lists, badges)
-  firebase/         Firestore helper modules
-  schemas/          Canonical Zod schemas for players_v2 and architect collections
+  schemas/          Canonical Zod schemas
+  shared/           Shared components, hooks and utilities
   styles/           Additional style sheets
-  firebaseConfig.js Firebase client initialization
-  firebaseHelpers.js Helper functions for Firestore writes
-  index.css         Global styles
-  main.jsx          App entry point
+  tests/            Co-located tests
+  types/            TypeScript declarations
+  App.tsx           App routes
+  main.tsx          App entry point
+  firebaseConfig.ts Firebase client initialization
+tests/              Test suites (unit, integration, emulator, end-to-end)
+docs/               Permanent documentation (see docs/INDEX.md)
+work/               Plans in progress
+archive/            Finished or retired plans and documents
 ```
-
-Additional raw datasets live under `data/` for development and import scripts.
 
 ## Key Features
 
-- **Advanced Filtering** – filter players by team, position, physical metrics, contracts, roles, subroles and statistics.
-- **Player Profiles** – view trait grades, role assignments, and editable blurbs for each player.
-- **Roster Tools** – build hypothetical lineups and evaluate depth with drag‑and‑drop sections and an add‑player drawer.
-- **Contract Display** – parse and present full contract breakdowns including yearly salary, options and free agency status.
-- **Role/Subrole Logic** – assign both primary roles and granular subroles to better capture on‑court responsibility.
-- **Future GM Expansion** – groundwork laid for additional team building tools under the "HoopZero Architect" project.
+- **Player Database** – filter players by team, position, physical metrics, contracts, roles, subroles and statistics.
+- **Player Profiles** – trait grades, role assignments and editable blurbs for each player.
+- **Lists, Tier Maker and Player Ranker** – build and export your own player lists, tiers and rankings.
+- **Roster Tools** – build hypothetical lineups with drag-and-drop sections and an add-player drawer.
+- **Architect** – run a team in a saved world: cap sheet, free agency, contracts and options, waivers and buyouts, and a Trade Machine that checks NBA trade rules.
 
-## 🔁 Firestore Collections
+## Firestore Collections
 
-This project uses multiple Firestore collections to separate global player data from team/contract logic.
+- `players_v2` – player records, stats, grades, roles, bio info and contracts (read-only source data)
+- `architect_base*` – Architect source data (read-only)
+- `architect_worlds`, `lists`, `tierLists`, `rosterProjects`, `rankerSessions`, `freeAgents` – user-created content
 
-- `/players_v2` — player records, stats, grades, roles, bio info, and contracts
-- `architect_worlds` / `architect_base*` — GM dashboard and trade machine data
-
-📄 See [`docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical collection and field reference  
-📄 See [`docs/reference/PROJECT_SCHEMA.md`](./docs/reference/PROJECT_SCHEMA.md) for repo structure and validation rules
-
-## Related Projects
-
-- **ScoutZero** – internal evaluation suite used to create player grades and roles. HoopZero presents this data in a read‑only form.
-- **HoopZero Architect** – team‑building and GM toolkit integrated with the same player database.
-
-## Developer Guide
-
-See [DEVELOPER_GUIDE.md](docs/guides/DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
+See [docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md](docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md) for the full schema and [docs/reference/PROJECT_SCHEMA.md](docs/reference/PROJECT_SCHEMA.md) for repository structure and validation rules.
 
 ## Documentation
 
@@ -155,4 +127,4 @@ The `docs/` folder is organized into four permanent pillars:
 - **[`docs/operations/`](docs/operations/)** – how to run and maintain the system (runbooks)
 - **[`docs/standards/`](docs/standards/)** – rules governing the project
 
-Start with [`docs/INDEX.md`](docs/INDEX.md) for a full map.
+Start with [`docs/INDEX.md`](docs/INDEX.md) for a full map. See [DEVELOPER_GUIDE.md](docs/guides/DEVELOPER_GUIDE.md) for data structure, component architecture and coding conventions.
