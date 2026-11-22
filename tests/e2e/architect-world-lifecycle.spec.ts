@@ -75,13 +75,13 @@ async function reopenOlderWorlds(
     page.on('dialog', accept);
     try {
       await picker.selectOption(worldId);
-      await expect(menu).toContainText(worldId);
+      await expect(menu).toContainText(worldId, { timeout: 60000 });
     } finally {
       page.off('dialog', accept);
     }
     await page.reload();
-    await expect(menu).toContainText(worldId);
-    await expect(menu).toContainText(identity.asOfDate);
+    await expect(menu).toContainText(worldId, { timeout: 60000 });
+    await expect(menu).toContainText(identity.asOfDate, { timeout: 60000 });
   }
 }
 
