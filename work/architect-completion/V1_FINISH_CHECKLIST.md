@@ -118,40 +118,22 @@ that changes the plan.
 ## Phase 2: switch it on (owner confirms the deploy)
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
-- [ ] D2 Secure zero-billing ordinary Create World from the current 2026-27
-      baseline. Owner's November 16 decision confirms personal, noncommercial
-      Hobby eligibility and authorizes a bounded owner-only proof. Work's actual
-      dashboard evidence confirms the existing Hobby project, Fluid Compute,
-      2 GiB / 1 vCPU and 300-second maximum; production domains remain public.
-      The private PR #659 recovery archive is preserved in BZE-243; both exact
-      financial/draft SHA-256 pins verified, with no reconstruction or substitution.
-      The portable trusted initializer now has a default-closed HTTP adapter,
-      verified nonanonymous owner tokens, server-only transactional admission
-      (original finite proof: three lifetime worlds, one start/minute, two attempts/world), pinned private
-      assets and sanitized failures. Existing Firestore rules and trade engine
-      remain intact. The actual-package browser journey passes creation, pick
-      trade, saved receipt and visible reload, while historical and pre-B5 world
-      inventories and immutable roots remain unchanged. Quota/deadline failures
-      are injected at real emulator write boundaries, not claimed live quota tests.
-      Local size proof: 394 world writes, largest document 911,756 bytes and final
-      batch about 7.33 MB; source storage about 14 MB/world before indexes.
-      Local bundled-code dependency trace plus private assets totals 37.4 MB;
-      this is not a hosted Vercel build or an index-inclusive Firestore size proof.
-      The November 17 corrections were independently accepted on exact candidate
-      `e97878d`; prior Claude publication failures and Codex verdicts are retained
-      in PR #662. The strengthened private-original journey is still blocked:
-      its original historical/pre-B5 saved-world export and independently pinned
-      inventory were not recovered by the November 22 bounded #659/session search.
-      No replacement originals or inventory are preservation evidence.
-      The owner authorized the bounded lifecycle repair within #662: reusable
-      slots, separate daily work limits, leased initialization, fenced/resumable
-      owner deletion and explicit failed-creation cleanup over the same HTTP
-      adapter. Required focused proof and fresh independent review are tracked in
-      #662; they do not establish hosted completion or weaken admission/Rules.
-      Live identity/IAM, billing-disabled/shared headroom, protected preview,
-      private provisioning and hosted runtime proof remain separate gates.
-      PR #660, billing, deployment, public activation and migration remain held.
+- [ ] D2 Ordinary Create World with the current 2026-27 baseline on a protected
+      owner-only Vercel Hobby preview with Firebase Spark. PR #662 has independent
+      local acceptance for bounded creation, saved trades and reload, deletion
+      and recreation using the hash-verified current packages. The three world
+      slots are reusable after deletion, with separate daily work limits.
+      Use [the protected preview procedure](../../docs/operations/CLOUD_DEVELOPMENT.md#prepare-a-protected-owner-preview)
+      to verify account access, protection, identity, private file provisioning,
+      Rules, shared quota and the hosted journey. Owner authorization is required
+      for the deployment and privileged changes. PR #660 and the public rollout
+      remain held.
 - [x] D3 Existing worlds left unmigrated and still readable.
+      Verify the rollout candidate with the reproducible historical and pre-B5
+      [older-world compatibility fixtures](../../docs/operations/CLOUD_DEVELOPMENT.md#reproduce-older-world-compatibility-locally).
+      The original #659 exports and inventory are unavailable. The regenerated
+      fixtures establish compatibility for the tested formats. Leave actual hosted
+      saves untouched during verification.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
       DPE grants stay post-V1 (needs-input).

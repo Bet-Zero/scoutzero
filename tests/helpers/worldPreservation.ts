@@ -60,7 +60,8 @@ export async function readWorldInventory(
 
 export function verifyOriginalWorld(
   expected: OriginalWorldExpectation,
-  rows: WorldInventory
+  rows: WorldInventory,
+  expectedTeamCount = 30
 ): void {
   const root = rows['.'];
   const identity = expected?.identity;
@@ -99,7 +100,7 @@ export function verifyOriginalWorld(
     /^contractBaselines\/[^/]+$/.test(path)
   );
   if (
-    teams.length !== 30 ||
+    teams.length !== expectedTeamCount ||
     teams.some(
       ([path, value]) =>
         value.teamCode !== path.split('/')[1] ||

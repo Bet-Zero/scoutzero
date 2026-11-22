@@ -25,7 +25,7 @@ async function worldRequest(input: unknown): Promise<Record<string, unknown>> {
   if (!user) throw new Error('You must be logged in to create worlds');
   const response = await fetch('/api/architect/world', {
     method: 'POST',
-    credentials: 'omit',
+    credentials: 'same-origin',
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',

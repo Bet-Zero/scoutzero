@@ -1,7 +1,12 @@
 /** HTTP adapter for the existing initializer. Closed unless explicitly configured. */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createHash } from 'node:crypto';
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
+import {
+  initializeApp,
+  getApps,
+  applicationDefault,
+  cert,
+} from 'firebase-admin/app';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import {
   getFirestore,
@@ -39,36 +44,66 @@ type Request = Pick<
 type Response = Pick<ServerResponse, 'setHeader' | 'end' | 'statusCode'>;
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const LOOPBACK = /^127\.0\.0\.1:\d+$/;
+const VERCEL_HOST = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vercel\.app$/;
 
 export function worldHttpConfiguration(env: NodeJS.ProcessEnv) {
   if (env.SCOUTZERO_WORLD_HTTP_ENABLED !== 'true') return null;
   const local = env.SCOUTZERO_WORLD_LOCAL_PROOF === 'true' && !env.VERCEL_ENV;
+  const preview = env.SCOUTZERO_WORLD_PROTECTED_PREVIEW === 'true';
+  const previewHost = preview ? (env.VERCEL_URL ?? '') : undefined;
   if (local) {
     if (
+      preview ||
       env.GCLOUD_PROJECT !== 'demo-architect-review' ||
       !LOOPBACK.test(env.FIRESTORE_EMULATOR_HOST ?? '') ||
       !LOOPBACK.test(env.FIREBASE_AUTH_EMULATOR_HOST ?? '')
     )
       throw new Error('Invalid isolated proof environment.');
   } else if (
-    env.VERCEL_ENV !== 'production' ||
     env.GCLOUD_PROJECT !== 'scoutzero-bf1ae' ||
     env.FIRESTORE_EMULATOR_HOST ||
     env.FIREBASE_AUTH_EMULATOR_HOST ||
     env.FUNCTIONS_EMULATOR ||
-    env.SCOUTZERO_WORLD_LOCAL_PROOF
+    env.SCOUTZERO_WORLD_LOCAL_PROOF ||
+    (preview
+      ? env.VERCEL !== '1' ||
+        env.VERCEL_ENV !== 'preview' ||
+        env.VERCEL_TARGET_ENV !== 'preview' ||
+        !VERCEL_HOST.test(previewHost!) ||
+        previewHost === env.VERCEL_PROJECT_PRODUCTION_URL ||
+        Boolean(env.SCOUTZERO_WORLD_ORIGIN)
+      : env.VERCEL_ENV !== 'production')
   ) {
     throw new Error('World HTTP runtime is not authorized.');
   }
   const owner = env.SCOUTZERO_WORLD_OWNER_UID ?? '';
-  const origin = env.SCOUTZERO_WORLD_ORIGIN ?? '';
+  const origin = previewHost
+    ? `https://${previewHost}`
+    : (env.SCOUTZERO_WORLD_ORIGIN ?? '');
   if (
     !ID.test(owner) ||
     (!local && !origin.startsWith('https://')) ||
     new URL(origin).origin !== origin
   )
     throw new Error('Owner/origin configuration is missing.');
-  return { local, owner, origin, projectId: env.GCLOUD_PROJECT! };
+  return { local, owner, origin, previewHost, projectId: env.GCLOUD_PROJECT! };
+}
+
+function previewServiceAccount(value: string | undefined, projectId: string) {
+  const key = JSON.parse(value ?? 'null');
+  if (
+    key?.type !== 'service_account' ||
+    key.project_id !== projectId ||
+    typeof key.client_email !== 'string' ||
+    !key.client_email.endsWith(`@${projectId}.iam.gserviceaccount.com`) ||
+    typeof key.private_key !== 'string' ||
+    !key.private_key.startsWith('-----BEGIN PRIVATE KEY-----')
+  )
+    throw new Error('Preview service identity is invalid.');
+  return {
+    client_email: key.client_email as string,
+    private_key: key.private_key as string,
+  };
 }
 
 export type WorldHttpDependencies = {
@@ -168,6 +203,10 @@ export function createArchitectWorldHandler(
     try {
       const config = worldHttpConfiguration(env);
       if (!config) {
+        reply(404, { error: 'unavailable' });
+        return;
+      }
+      if (config.previewHost && req.headers.host !== config.previewHost) {
         reply(404, { error: 'unavailable' });
         return;
       }
@@ -311,12 +350,28 @@ export async function serveArchitectWorld(req: Request, res: Response) {
     }
     if (!runtime) {
       const name = 'architect-world-http';
+      const key = config.previewHost
+        ? previewServiceAccount(
+            env.SCOUTZERO_WORLD_GOOGLE_CREDENTIALS,
+            config.projectId
+          )
+        : undefined;
       const app =
         getApps().find((a) => a.name === name) ??
         initializeApp(
           {
             projectId: config.projectId,
-            ...(config.local ? {} : { credential: applicationDefault() }),
+            ...(config.local
+              ? {}
+              : {
+                  credential: key
+                    ? cert({
+                        projectId: config.projectId,
+                        clientEmail: key.client_email,
+                        privateKey: key.private_key,
+                      })
+                    : applicationDefault(),
+                }),
           },
           name
         );
@@ -325,6 +380,9 @@ export async function serveArchitectWorld(req: Request, res: Response) {
         {
           db: getFirestore(app),
           verifyToken: (token) => getAuth(app).verifyIdToken(token, true),
+          ...(key
+            ? { pager: createWorldTreePager(config.projectId, undefined, key) }
+            : {}),
           packages: () =>
             (packages ??= readPrivateWorldPackages(
               env.SCOUTZERO_WORLD_PACKAGE_DIRECTORY ?? ''

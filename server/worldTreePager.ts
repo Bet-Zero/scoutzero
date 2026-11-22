@@ -5,7 +5,8 @@ import type { WorldTreePager } from '../functions/src/architect/worldLifecycle';
 
 export function createWorldTreePager(
   projectId: string,
-  emulator?: string
+  emulator?: string,
+  credentials?: { client_email: string; private_key: string }
 ): WorldTreePager {
   if (
     !/^[a-z0-9-]+$/.test(projectId) ||
@@ -20,8 +21,8 @@ export function createWorldTreePager(
           port: Number(emulator.split(':')[1]),
           sslCreds: grpc.credentials.createInsecure(),
         }
-      : {}
-  ); // Same ADC credential route as the Admin Firestore client, with normal TLS in hosted mode.
+      : { projectId, credentials }
+  ); // Hosted traversal uses the same identity as Admin Firestore and normal TLS.
   const options = {
     autoPaginate: false,
     timeout: 10000,

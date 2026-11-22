@@ -110,14 +110,74 @@ Deleted IDs keep small tombstones to prevent delayed retries recreating them.
 Discard also fences an ID that failed before admission, without traversing or
 deleting unowned rootless data. This cancellation consumes maintenance budget.
 
-Local lifecycle proof uses the actual recovered, hash-verified packages and
-`SCOUTZERO_WORLD_LIFECYCLE_PROOF=true` with
-`tests/e2e/architect-world-lifecycle.spec.ts`. This separate new-world proof is
-not original-world preservation. The strengthened original journey still needs
-the retained private export, `SCOUTZERO_WORLD_ORIGINALS_MANIFEST` and its
-independently retained `SCOUTZERO_WORLD_ORIGINALS_SHA256`; never generate them
-from whatever the test currently contains. Keep packages, sessions and proof
-artifacts private under `.scoutzero-dev/`.
+### Reproduce older-world compatibility locally
+
+Use fresh demo emulators and the loopback HTTP settings above. Keep the
+hash-verified Linear archive at `.scoutzero-dev/starting-data/current-recovery.tar.xz`
+and the two verified current inputs at `.scoutzero-dev/world-packages/`. Start
+the local app with `VITE_SCOUTZERO_WORLD_HTTP=true` and
+`VITE_SCOUTZERO_SIMULATION_LIVE=true`. Then run:
+
+```bash
+GCLOUD_PROJECT=demo-architect-review FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 \
+  FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+  node --import tsx tests/e2e/fixtures/seedOlderWorldCompatibility.ts
+SCOUTZERO_WORLD_LIFECYCLE_PROOF=true SCOUTZERO_WORLD_COMPATIBILITY_PROOF=true \
+  npx playwright test tests/e2e/architect-world-lifecycle.spec.ts
+```
+
+The seeder runs the trusted initializers from #656 and #658, then captures and
+hashes their complete document inventories before the browser journey. The
+first fixture uses the retained historical Contract release with ordinary
+historical base-team reads. The second uses
+the pre-B5 current draft package with 240 rights and the matching current
+financial package. The browser reopens and reloads both saves on each side of
+current-world create, trade, reload, delete and recreate. Their full inventory
+must match the pre-run version. This covers those two regenerated formats and
+cannot establish the state of the lost #659 exports or any actual hosted save.
+Keep packages, manifests and browser artifacts private under `.scoutzero-dev/`.
+
+### Prepare a protected owner preview
+
+Use the existing ScoutZero Hobby project and Spark database. Obtain explicit
+owner authorization for account changes, private provisioning, the exact
+Rules release and one manual Preview deployment. Git deployment stays disabled
+on the review branch. Keep this deployment on its generated `vercel.app` URL and
+enable Vercel Authentication with Standard Protection. Before adding the URL to
+Firebase Authorized Domains or signing in, confirm an incognito request to the
+generated URL and its world endpoint reaches Vercel Authentication. Verify that
+no share links or bypass rules grant additional access. Production domains and
+aliases are outside this rollout.
+
+| Preview configuration | Setting |
+| --- | --- |
+| Vercel system variables | Expose automatically. The handler binds Preview to `VERCEL_URL` and checks the request host. |
+| Existing public Firebase web configuration | `VITE_FIREBASE_*` for `scoutzero-bf1ae`. Leave review and emulator settings off. |
+| Browser features | `VITE_SCOUTZERO_WORLD_HTTP=true`, `VITE_SCOUTZERO_SIMULATION_LIVE=true`. |
+| Server opt-ins | `SCOUTZERO_WORLD_HTTP_ENABLED=true`, `SCOUTZERO_WORLD_PROTECTED_PREVIEW=true`, `GCLOUD_PROJECT=scoutzero-bf1ae`. |
+| Preview owner | `SCOUTZERO_WORLD_OWNER_UID` for the owner's existing nonanonymous Firebase sign-in. Confirm it has fewer than three occupied world slots. Use a separate owner-controlled Firebase sign-in if needed for a clean test. |
+| Server identity | `SCOUTZERO_WORLD_GOOGLE_CREDENTIALS` as a write-only Preview Secret. Use a dedicated or approved existing service account in this Firebase project with Firestore data access (`roles/datastore.user`) and `firebaseauth.users.get` for revocation checks. Confirm any key creation with the owner. |
+| Private assets | `SCOUTZERO_WORLD_PACKAGE_DIRECTORY=.scoutzero-dev/world-packages`. Include only the two accepted files in the server function. Leave `SCOUTZERO_WORLD_ORIGIN` and all local-proof variables unset. |
+
+Verify the Firebase project is on Spark with billing disabled and check shared
+Firestore and Hobby headroom before enabling the preview. Confirm the owner
+accepts Vercel handling the private inputs and review the team's Data Preferences.
+Run `vercel build --standalone` from the reviewed commit in a clean staging
+directory. Before uploading the private prebuilt bundle, compare both
+server-package digests to the pins and verify neither package is in the static
+output or any other function. Enter the service account credential directly
+into Vercel. Keep it out of files sent to GitHub or bundled for deployment.
+
+Publish only the reviewed Firestore Rules for the existing project. Preserve
+the active Rules release for rollback. Add only the generated Preview hostname
+to Firebase Authentication's Authorized Domains for Google sign-in. Conduct one
+hosted owner journey on newly created disposable worlds. Validate a player
+trade and a pick trade, apply, verify the history after reload, then delete and
+recreate. Check logged-out Vercel access, nonowner Firebase admission, private
+file URLs, Firestore usage and Function duration. Compare the observed shared
+quota and storage, including indexes, with the Spark and Hobby limits. Keep the
+verified Preview URL for owner acceptance and keep test writes out of preexisting
+saved worlds.
 
 ## Actual live refresh and scope
 

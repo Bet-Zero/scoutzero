@@ -14,6 +14,17 @@ const local = {
   SCOUTZERO_WORLD_OWNER_UID: 'proof-owner',
   SCOUTZERO_WORLD_ORIGIN: 'http://127.0.0.1:5173',
 };
+const preview = {
+  SCOUTZERO_WORLD_HTTP_ENABLED: 'true',
+  SCOUTZERO_WORLD_PROTECTED_PREVIEW: 'true',
+  GCLOUD_PROJECT: 'scoutzero-bf1ae',
+  VERCEL: '1',
+  VERCEL_ENV: 'preview',
+  VERCEL_TARGET_ENV: 'preview',
+  VERCEL_URL: 'scoutzero-owner-proof.vercel.app',
+  VERCEL_PROJECT_PRODUCTION_URL: 'scoutzero.vercel.app',
+  SCOUTZERO_WORLD_OWNER_UID: 'proof-owner',
+};
 const token = {
   uid: 'proof-owner',
   aud: 'demo-architect-review',
@@ -44,6 +55,48 @@ describe('owner world HTTP policy', () => {
         SCOUTZERO_WORLD_ORIGIN: 'https://example.com',
       })
     ).toThrow();
+  });
+  it('requires a generated preview origin and refuses aliases and live traffic', async () => {
+    expect(worldHttpConfiguration(preview)?.origin).toBe(
+      `https://${preview.VERCEL_URL}`
+    );
+    for (const env of [
+      { VERCEL: undefined },
+      { VERCEL_ENV: 'production' },
+      { VERCEL_TARGET_ENV: 'production' },
+      { VERCEL_URL: 'scoutzero.vercel.app' },
+      { VERCEL_URL: 'scoutzero.vercel.app.example.com' },
+      { SCOUTZERO_WORLD_ORIGIN: 'https://scoutzero.vercel.app' },
+      { SCOUTZERO_WORLD_PROTECTED_PREVIEW: undefined },
+      { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8082' },
+      { SCOUTZERO_WORLD_LOCAL_PROOF: 'true' },
+    ])
+      expect(() => worldHttpConfiguration({ ...preview, ...env })).toThrow();
+
+    const packages = vi.fn();
+    const verifyToken = vi.fn();
+    const handler = createArchitectWorldHandler(
+      { db: {}, packages, verifyToken } as unknown as WorldHttpDependencies,
+      preview
+    );
+    for (const [host, origin, status] of [
+      ['scoutzero.vercel.app', undefined, 404],
+      [undefined, undefined, 404],
+      [preview.VERCEL_URL, 'https://scoutzero.vercel.app', 403],
+      [preview.VERCEL_URL, `https://${preview.VERCEL_URL}`, 401],
+    ] as const) {
+      const res = response();
+      await handler(
+        {
+          method: 'POST',
+          headers: { host, origin, 'content-type': 'application/json' },
+        } as never,
+        res
+      );
+      expect(res.statusCode).toBe(status);
+    }
+    expect(verifyToken).not.toHaveBeenCalled();
+    expect(packages).not.toHaveBeenCalled();
   });
   it.each([
     [undefined, token, 401],
