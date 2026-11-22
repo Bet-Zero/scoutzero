@@ -143,11 +143,13 @@ Use the existing ScoutZero Hobby project and Spark database. Obtain explicit
 owner authorization for account changes, private provisioning, the exact
 Rules release and one manual Preview deployment. Git deployment stays disabled
 on the review branch. Keep this deployment on its generated `vercel.app` URL and
-enable Vercel Authentication with Standard Protection. Before adding the URL to
-Firebase Authorized Domains or signing in, confirm an incognito request to the
-generated URL and its world endpoint reaches Vercel Authentication. Verify that
-no share links or bypass rules grant additional access. Production domains and
-aliases are outside this rollout.
+enable Vercel Authentication with Standard Protection. Before uploading any
+private bytes, confirm the owner is the sole authorized preview viewer. Check
+team and project membership, access groups, directly granted Vercel accounts,
+and protection exceptions, share links and bypass rules. Before adding the URL
+to Firebase Authorized Domains or signing in, confirm an incognito request to
+the generated URL and its world endpoint reaches Vercel Authentication.
+Production domains and aliases are outside this rollout.
 
 | Preview configuration | Setting |
 | --- | --- |
