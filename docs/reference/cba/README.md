@@ -13,8 +13,8 @@ checks its fingerprint, and refuses to print anything if the check fails.
 
 **Don't use `ARCHITECT_CBA_CANON.md` in this folder as the rulebook.** It is
 Canon v1.1, which an independent review rejected. It is kept byte-identical
-as historical evidence. The accepted v2.0 file has the same name but lives
-only at the pinned commit below.
+as historical evidence. The accepted v2.0 file has the same name but is not on
+`main`; it lives at the pinned commit on the authority branch below.
 
 ## Pinned accepted authority (Canon v2.0)
 
@@ -31,7 +31,7 @@ If the authority ref is missing locally, fetch just that ref:
 git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
 ```
 
-The lookup command prints the same instruction when it needs it.
+If the ref is missing, the lookup command also prints a fetch instruction.
 
 ## Edition history
 

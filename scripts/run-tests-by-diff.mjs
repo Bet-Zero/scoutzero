@@ -10,7 +10,7 @@ import ts from 'typescript';
 const isTest = (file) => /\.(?:test|node-test)\.[cm]?[jt]sx?$/.test(file);
 const isDoc = (file) => /\.(?:md|mdc)$/.test(file);
 const isPolicy = (file) =>
-  /^(?:AGENTS\.md|CLAUDE\.md|\.github\/|\.cursor\/rules\/|\.husky\/|docs\/(?:standards|agent-guides)\/|scripts\/(?:run-tests-by-diff\.mjs|review\/|ci\/|docs\/checkWorkspaceGuardrails\.mjs)|tests\/(?:runTestsByDiff\.test\.ts|tooling\/phase3aWorkflow\.node-test\.ts))/.test(
+  /^(?:AGENTS\.md|CLAUDE\.md|\.github\/|\.cursor\/rules\/|\.husky\/|docs\/(?:standards|agent-guides)\/|docs\/reference\/cba\/README\.md|scripts\/(?:run-tests-by-diff\.mjs|review\/|ci\/|docs\/checkWorkspaceGuardrails\.mjs)|tests\/(?:runTestsByDiff\.test\.ts|tooling\/phase3aWorkflow\.node-test\.ts))/.test(
     file
   );
 const isGlobal = (file) =>

@@ -158,16 +158,25 @@ are already marked Completed.
 | `.github/workflows/ci.yml` | Removed the nightly step that ran the removed test | git history |
 | `docs/reference/cba/README.md` | Rewritten. It wrongly said no rulebook was accepted. It now says Canon v2.0 is accepted, records the pinned version (moved here from the Phase 3A guide), and warns that the file in that folder is the rejected v1.1. | git history |
 | `tests/tooling/phase3aWorkflow.node-test.ts` | The pinned-rulebook test now reads the pin from `docs/reference/cba/README.md` | git history |
+| `scripts/run-tests-by-diff.mjs`, `tests/runTestsByDiff.test.ts` | The test runner now treats `docs/reference/cba/README.md` as a protected rules file, the way it treated the old Phase 3A guide. Editing it requires a second review and runs the rulebook pin test. A new test case checks this. Added after the independent review found the gap. | git history |
 | `scripts/source-releases/official-nba-html/cli.ts` | Points at the archived Phase 3A guide's new path (the file's contents are unchanged) | git history |
 | `.github/workflows/nba-maintenance-source-review.yml` | The NBA data review robot now reads AGENTS.md's second-review section, with two plain sentences of reviewer guidance, instead of the archived guide. Nothing else in it changed. | git history |
 | `docs/operations/BZE321_FIREBASE_INSTALLATION.md` | Added a note that its two workflows were retired and where the copies are | git history |
 | `AGENTS.md` | The note about the two retired guides now points to the archive and the rulebook README | git history |
 
-Old plans in `work/` that link to the two archived guides were left as they
-are; their links now point to files found under `archive/docs/agent-guides/`.
+Old plans in `work/` that link to the two archived guides were left
+unchanged, so those links are now broken; the files are in
+`archive/docs/agent-guides/`. The official-NBA-HTML tool (`cli.ts`) still reads
+the archived Phase 3A guide, so don't delete it from the archive.
 
 ### Still open after stage 2 (part 1)
 
+- Leftovers from the retired BZE-321 hosted review that are still in place:
+  `.github/draft-private-review-request.json` (kept, because
+  `tests/architect/draftSourceInstallation.test.ts` checks it),
+  `scripts/architect/verifyHostedDraftReview.ts`, and the nightly
+  "Hosted review browser redirect boundary" step. They may be useful for future
+  hosting checks; decide with Codex whether to keep them.
 - Remove the now-unused `test:private-source-review` script from
   `package.json`. It was left in place because any change to `package.json`
   makes the test runner run the full suite, which currently fails on an
