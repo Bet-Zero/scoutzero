@@ -332,6 +332,7 @@ describe('actual change rather than feature responsibility', () => {
     'scripts/ci/run_architect_ship_gates.mjs',
     'scripts/docs/checkWorkspaceGuardrails.mjs',
     'tests/tooling/phase3aWorkflow.node-test.ts',
+    'docs/reference/cba/README.md',
   ])(
     'protects validation/review mechanisms beyond the selector: %s',
     (file) => {

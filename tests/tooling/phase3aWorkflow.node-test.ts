@@ -237,7 +237,7 @@ test('accepted Canon parser rejects duplicate or incomplete active leaf rows', (
 
 test('accepted Canon documentation and durable ref match the runtime pin', () => {
   const profile = fs.readFileSync(
-    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
+    path.join(repoRoot, 'docs/reference/cba/README.md'),
     'utf8'
   );
   assert.match(profile, new RegExp(ACCEPTED_CANON_PIN.candidate));
