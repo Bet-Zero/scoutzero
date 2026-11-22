@@ -1142,6 +1142,55 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(onSetWorldId).toHaveBeenCalledWith(null);
     });
 
+    it.each(['account', 'world'])(
+      'does not clear a newer %s selection after delayed deletion',
+      async (change) => {
+        let finishDelete!: (value: { ok: boolean }) => void;
+        mockPurgeWorld.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              finishDelete = resolve;
+            })
+        );
+        const setActiveWorld = vi.fn();
+        const view = (userId: string, worldId: string) => (
+          <WorldSelector
+            userId={userId}
+            activeWorldOwner={{ worldId, identityToken: 1, setActiveWorld }}
+            worldModeBoundary={{
+              kind: 'world',
+              worldId,
+              onReloadWorldData: async () => null,
+            }}
+          />
+        );
+        const rendered = render(view('user_1', 'world_alpha'));
+        await screen.findByLabelText('Saved World');
+        fireEvent.click(screen.getByTitle('World actions'));
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Delete Permanently' })
+        );
+        fireEvent.change(
+          screen.getByLabelText(/Type DELETE or World Alpha to confirm:/i),
+          { target: { value: 'DELETE' } }
+        );
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Delete Permanently' })
+        );
+        await waitFor(() => expect(mockPurgeWorld).toHaveBeenCalled());
+        rendered.rerender(
+          change === 'account'
+            ? view('user_2', 'world_alpha')
+            : view('user_1', 'world_beta')
+        );
+        finishDelete({ ok: true });
+        await waitFor(() =>
+          expect(screen.queryByText('Deleting...')).not.toBeInTheDocument()
+        );
+        expect(setActiveWorld).not.toHaveBeenCalled();
+      }
+    );
+
     it('preserves queued delete failure messaging', async () => {
       mockPurgeWorld.mockResolvedValue({
         queued: true,
