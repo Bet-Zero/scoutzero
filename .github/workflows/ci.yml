@@ -83,9 +83,6 @@ jobs:
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
 
-      - name: Private source review transport boundary
-        run: npm run test:private-source-review
-
       - name: Install matching browser for the redirect proof
         timeout-minutes: 3
         run: npx --no-install playwright install --with-deps chromium

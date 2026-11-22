@@ -1,5 +1,12 @@
 # BZE-321: bounded Firebase installation
 
+> **Note (November 22, 2026):** the two GitHub workflows this runbook describes
+> (`bze321-hosted-review.yml` and `bze321-private-source-review.yml`) were
+> retired after the installation finished. They only ran for a branch that no
+> longer exists. Unchanged copies are in `archive/github-workflows/`. The
+> installed draft-pick release itself is unchanged. Leftover access and
+> transfer-file clean-up is tracked in Linear BZE-346.
+
 ## October 21 installed — hosted verification remains gated
 
 Protected source run `39590633749` succeeded on `fdb1feaf` using the unchanged

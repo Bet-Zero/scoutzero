@@ -25,7 +25,7 @@ const implementationPaths = [
   .map((name) => `scripts/source-releases/official-nba-html/${name}`)
   .concat([
     'docs/operations/OFFICIAL_NBA_HTML_EVIDENCE.md',
-    'docs/agent-guides/phase3a-execution.md',
+    'archive/docs/agent-guides/phase3a-execution.md',
     'scripts/source-releases/verify-pst-source-release.ts',
     'src/schemas/pstSourceRelease.ts',
     'package-lock.json',

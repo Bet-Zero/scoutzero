@@ -89,7 +89,7 @@ differently from the old ones:
 - **Return packages, Graphify refreshes, retained browser certificates, hash
   receipts and evidence ledgers** are no longer part of ordinary work.
 
-### Retired but kept in place
+### Retired but kept in place (moved to the archive in stage 2, below)
 
 `docs/agent-guides/phase3a-execution.md` and
 `docs/agent-guides/independent-review-boundary.md` are no longer followed for
@@ -125,13 +125,58 @@ longer exist. That's expected until stage 2.
 
 ### Planned for stage 2
 
-- Rewrite the V1 checklist in plain English and move the plan to Linear.
-- Clean up Linear: cancel stale issues with a one-line reason, archive finished
-  projects, and fix BZE-243's status.
-- Simplify or retire the one-off `bze321-*` workflows.
-- Choose a permanent private home for the private data packages.
-- Re-check the July cap-hold issue (BZE-260) against the current code.
-- Move the pinned rulebook version out of the retired Phase 3A guide, then
-  retire both old guides fully.
+See the stage 2 section below for what was done and what's still open.
+
+## November 22, 2026: stage 2 of the workflow cleanup (part 1)
+
+The owner approved stage 2 in chat on November 22, 2026, limited to process
+cleanup. Hosting, the nightly test failure and the July cap-hold check were
+left to Codex as project work.
+
+### Linear
+
+| Issue | Change | Why |
+| --- | --- | --- |
+| BZE-309 | Canceled, with a closing comment | Certifying every pick's real-world history was replaced by the November 10 simulation standard. |
+| BZE-321 | Canceled, with a closing comment | Same reason. Its two unfinished clean-up tasks moved to BZE-346. |
+| BZE-329 | Canceled, with a closing comment | Its delivered work landed in PRs #582–#597; the rest (future seasons) is post-V1 in the V1 checklist. |
+| BZE-346 | **Created** | Holds the two leftover security clean-up tasks from October that were buried in BZE-321: a read-only check of leftover Google access, and deleting seven used-up password and transfer files. Both need the owner's OK before anything is removed. |
+
+Nothing was deleted in Linear. Canceled issues keep their descriptions,
+comments and attachments and can be reopened. Old finished Linear projects
+were not archived, because the available tools can't archive projects; they
+are already marked Completed.
+
+### Project files
+
+| Item | Change | Where it is now |
+| --- | --- | --- |
+| `docs/agent-guides/phase3a-execution.md` | Moved to the archive, unchanged | `archive/docs/agent-guides/` |
+| `docs/agent-guides/independent-review-boundary.md` | Moved to the archive, unchanged | `archive/docs/agent-guides/` |
+| `.github/workflows/bze321-hosted-review.yml`, `bze321-private-source-review.yml` | Retired: moved, unchanged. They only ran for a branch that no longer exists, and their secrets were deleted in October. | `archive/github-workflows/` |
+| `tests/tooling/privateSourceReview.node-test.ts` | Removed. It only tested the retired private-review workflow. The test runner blocks moving a test to where it would silently stop running, so it was removed instead. | git history (the version before this stage 2 change) |
+| `.github/workflows/ci.yml` | Removed the nightly step that ran the removed test | git history |
+| `docs/reference/cba/README.md` | Rewritten. It wrongly said no rulebook was accepted. It now says Canon v2.0 is accepted, records the pinned version (moved here from the Phase 3A guide), and warns that the file in that folder is the rejected v1.1. | git history |
+| `tests/tooling/phase3aWorkflow.node-test.ts` | The pinned-rulebook test now reads the pin from `docs/reference/cba/README.md` | git history |
+| `scripts/source-releases/official-nba-html/cli.ts` | Points at the archived Phase 3A guide's new path (the file's contents are unchanged) | git history |
+| `.github/workflows/nba-maintenance-source-review.yml` | The NBA data review robot now reads AGENTS.md's second-review section, with two plain sentences of reviewer guidance, instead of the archived guide. Nothing else in it changed. | git history |
+| `docs/operations/BZE321_FIREBASE_INSTALLATION.md` | Added a note that its two workflows were retired and where the copies are | git history |
+| `AGENTS.md` | The note about the two retired guides now points to the archive and the rulebook README | git history |
+
+Old plans in `work/` that link to the two archived guides were left as they
+are; their links now point to files found under `archive/docs/agent-guides/`.
+
+### Still open after stage 2 (part 1)
+
+- Remove the now-unused `test:private-source-review` script from
+  `package.json`. It was left in place because any change to `package.json`
+  makes the test runner run the full suite, which currently fails on an
+  unrelated test (the contract-history guard that Codex is fixing). Nothing
+  calls the script anymore.
+- Rewrite the V1 checklist in plain English and move the plan to Linear, and
+  stop BZE-243 from closing itself. Waiting until Codex finishes the hosting
+  work it is doing from that checklist.
+- Choose a permanent private home for the private data packages (needs the
+  owner's OK; a private GitHub repository is suggested).
 - Consider turning on GitHub branch protection for `main` so tests must pass
-  before anything merges (today nothing enforces it).
+  before anything merges (needs the owner's OK).

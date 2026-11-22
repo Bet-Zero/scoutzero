@@ -68,11 +68,10 @@ The owner does not write code and relies on AI for all technical work.
 | NBA data refresh | [NBA_MAINTENANCE.md](docs/operations/NBA_MAINTENANCE.md) |
 | Private 2026–27 starting-data packages | Attached to Linear BZE-243; recovery steps are in its November 16, 2026 comment. A permanent private home is still to be chosen. Never leave private data only on a session's disk. |
 
-`docs/agent-guides/phase3a-execution.md` and
-`docs/agent-guides/independent-review-boundary.md` are retired for ordinary
-work. They stay in place only because older tools, a test and the NBA
-data-publication review workflows still read them. Don't follow them for new
-work, except where one of those workflows tells its reviewer to read them.
+The old Phase 3A execution profile and independent-review guide are retired
+and kept in `archive/docs/agent-guides/` for history. Don't follow them. The
+pinned rulebook details they used to hold are in
+[docs/reference/cba/README.md](docs/reference/cba/README.md).
 
 ## How to do a task
 
