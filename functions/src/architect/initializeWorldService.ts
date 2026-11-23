@@ -418,6 +418,7 @@ export type WorldInitializationDependencies = {
   loadDraft?: typeof loadSimulationDraftBaseline;
   loadTrustedDraft?: typeof loadTrustedDraftBaseline;
   financialSha256?: string;
+  ownerPreview?: boolean;
   serverTimestamp?: () => unknown;
   commitWrites?: (
     build: (writer: {
@@ -741,7 +742,10 @@ export async function initializeArchitectWorldService(
       }
     }
     await commitWrites((batch) => {
-      batch.create(worldRef, metadata);
+      batch.create(
+        worldRef,
+        dependencies.ownerPreview ? { ...metadata, ownerPreview: true } : metadata
+      );
       for (const document of documents) {
         batch.create(
           worldRef

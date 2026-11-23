@@ -6,7 +6,9 @@ export class WorldHttpError extends Error {
     public readonly code?: string
   ) {
     super(
-      code === 'world-has-children'
+      code === 'world-outside-lifecycle-scope'
+        ? 'This Preview can only delete worlds it created.'
+        : code === 'world-has-children'
         ? 'Delete the child worlds first.'
         : code === 'initialization-pending'
           ? 'Creation is still finishing. Wait a few minutes, then retry or discard it.'

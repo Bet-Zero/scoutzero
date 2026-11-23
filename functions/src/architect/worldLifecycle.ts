@@ -7,6 +7,7 @@ import {
   checkedUsage,
   activeWorldReservations,
   utcDay,
+  OWNER_PREVIEW_WORLD_PREFIX,
   WORLD_PROOF_LIMITS as limits,
   WorldAdmissionError,
 } from './worldAdmission';
@@ -30,12 +31,15 @@ export async function removeArchitectWorld(
   db: Firestore,
   input: RemovalInput,
   pager: WorldTreePager,
-  now: () => number
+  now: () => number,
+  ownerPreview = false
 ) {
   const { worldId, userId: uid } = input;
+  if (worldId.startsWith(OWNER_PREVIEW_WORLD_PREFIX) !== ownerPreview)
+    throw new WorldAdmissionError(409, 'world-outside-lifecycle-scope');
   const world = db.doc('architect_worlds/' + worldId),
     claim = claimRef(db, worldId),
-    counter = usageRef(db, uid);
+    counter = usageRef(db, uid, ownerPreview);
   const lease = randomUUID();
   await db.runTransaction(async (tx) => {
     const [snapshot, reservation, usage] = await tx.getAll(
@@ -46,9 +50,16 @@ export async function removeArchitectWorld(
     const root = snapshot.data(),
       prior = reservation.data(),
       used = checkedUsage(usage.data());
-    used.activeWorldIds = await activeWorldReservations(db, tx, uid, used);
     if ((root && root.createdBy !== uid) || (prior && prior.uid !== uid))
       throw new WorldAdmissionError(403, 'owner-mismatch');
+    if (
+      (root && (root.ownerPreview === true) !== ownerPreview) ||
+      (prior && (prior.ownerPreview === true) !== ownerPreview)
+    )
+      throw new WorldAdmissionError(409, 'world-outside-lifecycle-scope');
+    used.activeWorldIds = ownerPreview
+      ? (used.activeWorldIds ?? [])
+      : await activeWorldReservations(db, tx, uid, used);
     if (prior?.status === 'deleted') return;
     const chargeMaintenance = () => {
       const chargedAt = now();
@@ -79,6 +90,7 @@ export async function removeArchitectWorld(
       chargeMaintenance();
       tx.create(claim, {
         uid,
+        ...(ownerPreview ? { ownerPreview: true } : {}),
         status: 'deleted',
         cancelledBeforeAdmission: true,
       });
@@ -108,6 +120,9 @@ export async function removeArchitectWorld(
       ).data();
       if (parent && parent.createdBy !== uid)
         throw new WorldAdmissionError(403, 'owner-mismatch');
+      if (ownerPreview && parent &&
+          (!parentId.startsWith(OWNER_PREVIEW_WORLD_PREFIX) || parent.ownerPreview !== true))
+        throw new WorldAdmissionError(409, 'world-outside-lifecycle-scope');
       if (
         parent &&
         parent.childWorlds !== undefined &&
@@ -137,11 +152,9 @@ export async function removeArchitectWorld(
       if (!eligible.eligible)
         throw new WorldAdmissionError(409, 'cleanup-refused');
     }
+    const childQuery = db.collection('architect_worlds').where('parentWorldId', '==', worldId);
     const children = await tx.get(
-      db
-        .collection('architect_worlds')
-        .where('parentWorldId', '==', worldId)
-        .limit(1)
+      (ownerPreview ? childQuery.where('ownerPreview', '==', true) : childQuery).limit(1)
     );
     if (!children.empty || (root?.childWorlds?.length ?? 0) > 0)
       throw new WorldAdmissionError(409, 'world-has-children');
@@ -149,6 +162,7 @@ export async function removeArchitectWorld(
     tx.set(claim, {
       ...prior,
       uid,
+      ...(ownerPreview ? { ownerPreview: true } : {}),
       status: 'deleting',
       removalLease: lease,
       removalLeaseUntil: now() + limits.leaseMs,
@@ -238,6 +252,9 @@ export async function removeArchitectWorld(
       const parent = parentRef ? (await tx.get(parentRef)).data() : null;
       if (parent && parent.createdBy !== uid)
         throw new WorldAdmissionError(403, 'owner-mismatch');
+      if (ownerPreview && parent &&
+          (!current.removalParent.startsWith(OWNER_PREVIEW_WORLD_PREFIX) || parent.ownerPreview !== true))
+        throw new WorldAdmissionError(409, 'world-outside-lifecycle-scope');
       if (
         parent &&
         parent.childWorlds !== undefined &&

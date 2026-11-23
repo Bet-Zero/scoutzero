@@ -757,6 +757,13 @@ const normalizeWorldAsOfDate = (asOfDate: string): string => {
   return asOfDate;
 };
 
+function generateWorldCreationId() {
+  return import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true' &&
+    import.meta.env.VITE_SCOUTZERO_OWNER_PREVIEW === 'true'
+    ? `owner_preview_${globalThis.crypto.randomUUID()}`
+    : generateWorldId();
+}
+
 export async function createWorld({
   name,
   description = '',
@@ -791,7 +798,7 @@ export async function createWorld({
       }
       if (!pending) {
         pending = {
-          worldId: generateWorldId(),
+          worldId: generateWorldCreationId(),
           worldName: name.trim(),
           description: description.trim(),
           userId,
@@ -804,7 +811,7 @@ export async function createWorld({
     });
   }
 
-  const worldId = generateWorldId();
+  const worldId = generateWorldCreationId();
   await initializeArchitectWorld({
     worldId,
     worldName: name.trim(),
@@ -1151,7 +1158,7 @@ export async function branchWorld(
   if (!contractCompatibility.compatible) {
     throw new Error(contractCompatibility.message);
   }
-  const worldId = generateWorldId();
+  const worldId = generateWorldCreationId();
   const copyOperations: BranchCopyOperation[] = [];
   const parentRaw = (await getDoc(worldMetadataRef(parentWorldId))).data();
   const simulationParent = isSimulationWorldMetadata(parentRaw);

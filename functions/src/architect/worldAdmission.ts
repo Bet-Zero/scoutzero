@@ -6,8 +6,10 @@ import type {
   DocumentData,
 } from 'firebase-admin/firestore';
 export const WORLD_ADMISSION_COLLECTION = 'architect_worldAdmission';
+const PREVIEW_ADMISSION_COLLECTION = 'architect_ownerPreviewAdmission';
 export const WORLD_INITIALIZATION_CLAIMS =
   'architect_worldInitializationClaims';
+export const OWNER_PREVIEW_WORLD_PREFIX = 'owner_preview_';
 export const WORLD_PROOF_LIMITS = Object.freeze({
   worlds: 3,
   attemptsPerWorld: 2,
@@ -26,8 +28,8 @@ export class WorldAdmissionError extends Error {
     super(code);
   }
 }
-export const usageRef = (db: Firestore, uid: string) =>
-  db.collection(WORLD_ADMISSION_COLLECTION).doc(uid);
+export const usageRef = (db: Firestore, uid: string, ownerPreview = false) =>
+  db.collection(ownerPreview ? PREVIEW_ADMISSION_COLLECTION : WORLD_ADMISSION_COLLECTION).doc(uid);
 export const claimRef = (db: Firestore, id: string) =>
   db.collection(WORLD_INITIALIZATION_CLAIMS).doc(id);
 export const utcDay = (now: number) => new Date(now).toISOString().slice(0, 10);
@@ -83,15 +85,23 @@ export async function reserveWorldInitialization(
   worldId: string,
   payloadHash: string,
   now: number,
-  parentWorldId: string | null = null
+  parentWorldId: string | null = null,
+  ownerPreview = false
 ) {
+  if (worldId.startsWith(OWNER_PREVIEW_WORLD_PREFIX) !== ownerPreview)
+    throw new WorldAdmissionError(409, 'world-outside-lifecycle-scope');
   const claim = claimRef(db, worldId),
-    counter = usageRef(db, uid);
+    counter = usageRef(db, uid, ownerPreview);
   const world = db.collection('architect_worlds').doc(worldId);
   return db.runTransaction(async (tx) => {
     const [existing, root, usage] = await tx.getAll(claim, world, counter);
     const prior = existing.data();
-    if (prior && (prior.uid !== uid || prior.payloadHash !== payloadHash))
+    if (
+      prior &&
+      (prior.uid !== uid ||
+        prior.payloadHash !== payloadHash ||
+        (prior.ownerPreview === true) !== ownerPreview)
+    )
       throw new WorldAdmissionError(409, 'world-conflict');
     if (prior?.status === 'deleting' || prior?.status === 'deleted')
       throw new WorldAdmissionError(409, 'world-removed');
@@ -99,6 +109,7 @@ export async function reserveWorldInitialization(
       if (
         prior &&
         root.data()?.createdBy === uid &&
+        (root.data()?.ownerPreview === true) === ownerPreview &&
         !root.data()?.worldLifecycle
       )
         return { replay: true as const };
@@ -111,20 +122,24 @@ export async function reserveWorldInitialization(
     )
       throw new WorldAdmissionError(409, 'initialization-pending');
     const used = checkedUsage(usage.data());
-    const owned = await tx.get(
-      db
-        .collection('architect_worlds')
-        .where('createdBy', '==', uid)
-        .limit(WORLD_PROOF_LIMITS.worlds + 1)
-    );
     // Upgrade the old finite-proof bookkeeping without changing any saved world.
-    const active = await activeWorldReservations(db, tx, uid, used);
+    const active = ownerPreview
+      ? (used.activeWorldIds ?? [])
+      : await activeWorldReservations(db, tx, uid, used);
+    // Preview worlds are created only by this service and use their own slot ledger.
+    const owned = ownerPreview
+      ? []
+      : (await tx.get(
+          db.collection('architect_worlds')
+            .where('createdBy', '==', uid)
+            .limit(WORLD_PROOF_LIMITS.worlds + 1)
+        )).docs.map((doc) => doc.id);
     if (
       usage.exists &&
       now - used.lastStartedAt < WORLD_PROOF_LIMITS.intervalMs
     )
       throw new WorldAdmissionError(429, 'creation-rate-limited');
-    const occupied = new Set([...active, ...owned.docs.map((doc) => doc.id)]);
+    const occupied = new Set([...active, ...owned]);
     if (
       (occupied.size >= WORLD_PROOF_LIMITS.worlds && !occupied.has(worldId)) ||
       (prior?.attempts ?? 0) >= WORLD_PROOF_LIMITS.attemptsPerWorld
@@ -141,6 +156,9 @@ export async function reserveWorldInitialization(
       if (
         !parent ||
         parent.createdBy !== uid ||
+        (ownerPreview &&
+          (!parentWorldId.startsWith(OWNER_PREVIEW_WORLD_PREFIX) ||
+            parent.ownerPreview !== true)) ||
         parent.worldLifecycle ||
         parent.partialBranchCleanupClaim
       )
@@ -158,6 +176,7 @@ export async function reserveWorldInitialization(
     });
     tx.set(claim, {
       uid,
+      ...(ownerPreview ? { ownerPreview: true } : {}),
       payloadHash,
       parentWorldId,
       status: 'pending',
@@ -192,6 +211,9 @@ export async function assertWorldInitializationLease(
     if (
       !parent ||
       parent.createdBy !== claim.uid ||
+      (claim.ownerPreview === true &&
+        (!claim.parentWorldId.startsWith(OWNER_PREVIEW_WORLD_PREFIX) ||
+          parent.ownerPreview !== true)) ||
       parent.worldLifecycle ||
       parent.partialBranchCleanupClaim
     )

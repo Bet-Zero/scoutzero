@@ -81,6 +81,32 @@ afterAll(async () => {
   await deleteApp(app);
 });
 describe('owner world lifecycle', () => {
+  it('gives Preview its own slots and keeps existing worlds outside Preview deletion and branching', async () => {
+    for (const id of ['old-one', 'old-two', 'old-three']) await saved(id);
+    const old = (await root('old-one').get()).data();
+    await expect(reserve(db, uid, 'owner_preview_child', 'child', now + 60000, 'old-one', true))
+      .rejects.toMatchObject({ code: 'parent-unavailable' });
+    const removePreview = (id: string) => removeArchitectWorld(
+      db, { worldId: id, userId: uid, operation: 'delete' }, pager, () => now, true
+    );
+    await expect(removePreview('old-one'))
+      .rejects.toMatchObject({ code: 'world-outside-lifecycle-scope' });
+    expect((await root('old-one').get()).data()).toEqual(old);
+
+    const id = 'owner_preview_world';
+    await reserve(db, uid, id, 'preview', now, null, true);
+    await root(id).create({ worldId: id, createdBy: uid, ownerPreview: true });
+    await finish(db, id, 'complete');
+    await root('legacy-child').create({ createdBy: uid, parentWorldId: id });
+    await expect(remove(id))
+      .rejects.toMatchObject({ code: 'world-outside-lifecycle-scope' });
+    await expect(removePreview(id)).resolves.toEqual({ done: true });
+    expect((await root(id).get()).exists).toBe(false);
+    expect((await root('legacy-child').get()).exists).toBe(true);
+    expect((await root('old-one').get()).data()).toEqual(old);
+    await expect(reserve(db, uid, 'owner_preview_replacement', 'replacement', now + 60000, null, true))
+      .resolves.toMatchObject({ replay: false });
+  });
   it('reuses a slot after complete fenced-world deletion, including missing intermediate documents', async () => {
     for (const id of ['one', 'two', 'three']) await saved(id);
     await expect(

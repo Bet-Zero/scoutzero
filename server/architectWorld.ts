@@ -254,6 +254,7 @@ export function createArchitectWorldHandler(
         reply(403, { error: 'owner-mismatch' });
         return;
       }
+      const ownerPreview = Boolean(config.previewHost);
       if ('operation' in data) {
         const result = await removeArchitectWorld(
           dependencies.db,
@@ -262,7 +263,8 @@ export function createArchitectWorldHandler(
             config.projectId,
             config.local ? env.FIRESTORE_EMULATOR_HOST : undefined
           )),
-          dependencies.now ?? Date.now
+          dependencies.now ?? Date.now,
+          ownerPreview
         );
         reply(200, { ok: true, worldId: data.worldId, ...result });
         return;
@@ -277,7 +279,8 @@ export function createArchitectWorldHandler(
         data.worldId,
         hash,
         (dependencies.now ?? Date.now)(),
-        data.parentWorldId ?? null
+        data.parentWorldId ?? null,
+        ownerPreview
       );
       if (!reservation.replay) {
         try {
@@ -293,6 +296,7 @@ export function createArchitectWorldHandler(
                   ? httpRetainedContractRegistry.load(pin)
                   : httpRetainedContractRegistry.loadDefault(),
               financialSha256: CURRENT_WORLD_PACKAGES.financial.sha256,
+              ownerPreview,
               serverTimestamp: () => FieldValue.serverTimestamp(),
               commitWrites: async (build) => {
                 await dependencies.db.runTransaction(async (tx) => {

@@ -167,9 +167,9 @@ Production domains and aliases are outside this rollout.
 | --- | --- |
 | Vercel system variables | Expose automatically. The handler binds Preview to `VERCEL_URL` and checks the request host. |
 | Existing public Firebase web configuration | `VITE_FIREBASE_*` for `scoutzero-bf1ae`. Leave review and emulator settings off. |
-| Browser features | `VITE_SCOUTZERO_WORLD_HTTP=true`, `VITE_SCOUTZERO_SIMULATION_LIVE=true`. |
+| Browser features | `VITE_SCOUTZERO_WORLD_HTTP=true`, `VITE_SCOUTZERO_SIMULATION_LIVE=true`, `VITE_SCOUTZERO_OWNER_PREVIEW=true`. |
 | Server opt-ins | `SCOUTZERO_WORLD_HTTP_ENABLED=true`, `SCOUTZERO_WORLD_PROTECTED_PREVIEW=true`, `GCLOUD_PROJECT=scoutzero-bf1ae`. |
-| Preview owner | `SCOUTZERO_WORLD_OWNER_UID` for the owner's existing nonanonymous Firebase sign-in. Confirm it has fewer than three occupied world slots. Use a separate owner-controlled Firebase sign-in if needed for a clean test. |
+| Preview owner | `SCOUTZERO_WORLD_OWNER_UID` for the owner's existing nonanonymous Firebase sign-in. Preview creation and deletion use three reusable slots independent of existing worlds. |
 | Server identity | `SCOUTZERO_WORLD_GOOGLE_CREDENTIALS` as a write-only Preview Secret. Use a dedicated or approved existing service account in this Firebase project with Firestore data access (`roles/datastore.user`) and `firebaseauth.users.get` for revocation checks. Confirm any key creation with the owner. |
 | Private assets | `SCOUTZERO_WORLD_PACKAGE_DIRECTORY=.scoutzero-dev/world-packages`. Include only the two accepted files in the server function. Leave `SCOUTZERO_WORLD_ORIGIN` and all local-proof variables unset. |
 
@@ -185,9 +185,12 @@ manual prebuilt deploy retains the branch's Git context and receives only its
 scoped credentials. Keep the key out of other Preview environments and out of
 files sent to GitHub or bundled for deployment.
 
-Compare the active Firestore Rules in the shared project with the reviewed
-file before requesting authorization to publish the exact delta. Preserve the
-active Rules release for rollback. Add only the generated Preview hostname
+Recheck the active Firestore Rules in the shared project against the rollback
+copy before requesting authorization to publish `firestore.owner-preview.rules`.
+It retains the live access rules for existing saves and source data. The new
+world rules apply to server-created Preview saves. The Preview service cannot
+branch or delete earlier saves. Preserve the active Rules release for rollback.
+Add only the generated Preview hostname
 to Firebase Authentication's Authorized Domains for Google sign-in. Conduct one
 hosted owner journey on newly created disposable worlds. Validate a player
 trade and a pick trade, apply, verify the history after reload, then delete and
