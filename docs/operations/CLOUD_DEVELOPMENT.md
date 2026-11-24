@@ -179,8 +179,18 @@ accepts Vercel handling the private inputs and review the team's Data Preference
 Run `vercel build --standalone` from a clean Git checkout of the reviewed
 `architect-owner-preview` branch. Before uploading the private prebuilt bundle,
 compare both server-package digests to the pins and verify neither package is
-in the static output or any other function. Scope the server configuration and
-write-only service account Secret to Preview on that branch alone. Confirm the
+in the static output or any other function. Check that Node can load the
+standalone function's emitted handler without a TypeScript loader.
+
+```bash
+(
+  cd .vercel/output/functions/api/architect/world.func
+  node --input-type=module -e 'const entry = await import("./api/architect/world.js"); if (typeof entry.default !== "function") process.exit(1)'
+)
+```
+
+Scope the server configuration and write-only service account Secret to Preview
+on that branch alone. Confirm the
 manual prebuilt deploy retains the branch's Git context and receives only its
 scoped credentials. Keep the key out of other Preview environments and out of
 files sent to GitHub or bundled for deployment.

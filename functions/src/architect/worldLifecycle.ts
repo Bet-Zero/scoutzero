@@ -10,8 +10,8 @@ import {
   OWNER_PREVIEW_WORLD_PREFIX,
   WORLD_PROOF_LIMITS as limits,
   WorldAdmissionError,
-} from './worldAdmission';
-import { evaluatePartialBranchCleanupEligibility } from './partialBranchCleanup';
+} from './worldAdmission.js';
+import { evaluatePartialBranchCleanupEligibility } from './partialBranchCleanup.js';
 export type WorldTreePager = ((
   parent: string,
   collectionId?: string,

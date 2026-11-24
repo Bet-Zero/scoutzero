@@ -6,9 +6,9 @@ import {
   TrustedContractReleaseRegistry,
   RETAINED_TRUSTED_CONTRACT_RELEASES,
   DEFAULT_TRUSTED_CONTRACT_RELEASE,
-} from './trustedContractBaseline';
-import { parseSimulationFinancialBaseline } from './simulationFinancialBaseline';
-import { parseSimulationDraftBaseline } from './simulationDraftBaseline';
+} from './trustedContractBaseline.js';
+import { parseSimulationFinancialBaseline } from './simulationFinancialBaseline.js';
+import { parseSimulationDraftBaseline } from './simulationDraftBaseline.js';
 
 export const CURRENT_WORLD_PACKAGES = Object.freeze({
   financial: {

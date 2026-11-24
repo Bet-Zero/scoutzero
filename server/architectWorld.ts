@@ -16,26 +16,26 @@ import {
 import {
   initializeArchitectWorldService,
   type InitializeArchitectWorldRequest,
-} from '../functions/src/architect/initializeWorldService';
+} from '../functions/src/architect/initializeWorldService.js';
 import {
   CURRENT_WORLD_PACKAGES,
   readPrivateWorldPackages,
   httpRetainedContractRegistry,
-} from '../functions/src/architect/privateWorldPackages';
-import { canonicalStringify } from '../functions/src/architect/trustedContractBaseline';
+} from '../functions/src/architect/privateWorldPackages.js';
+import { canonicalStringify } from '../functions/src/architect/trustedContractBaseline.js';
 import {
   reserveWorldInitialization,
   finishWorldInitialization,
   WorldAdmissionError,
   assertWorldInitializationLease,
-} from '../functions/src/architect/worldAdmission';
+} from '../functions/src/architect/worldAdmission.js';
 
 import {
   removeArchitectWorld,
   type RemovalInput,
   type WorldTreePager,
-} from '../functions/src/architect/worldLifecycle';
-import { createWorldTreePager } from './worldTreePager';
+} from '../functions/src/architect/worldLifecycle.js';
+import { createWorldTreePager } from './worldTreePager.js';
 
 type Request = Pick<
   IncomingMessage,

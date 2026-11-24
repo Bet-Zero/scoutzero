@@ -2,14 +2,14 @@
 import {
   readSimulationPackageBytes,
   type ReadStorageObject,
-} from './simulationPackageSource';
+} from './simulationPackageSource.js';
 import {
   loadTrustedContractRelease,
   parseTrustedContractReleaseArtifact,
   type TrustedContractRelease,
   type TrustedContractReleaseDescriptor,
   type TrustedContractReleasePin,
-} from './trustedContractBaseline';
+} from './trustedContractBaseline.js';
 
 type SimulationPackage = {
   classification: 'SIMULATION';

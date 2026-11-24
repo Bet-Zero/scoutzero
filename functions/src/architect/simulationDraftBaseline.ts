@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import {
   readSimulationPackageBytes,
   type ReadStorageObject,
-} from './simulationPackageSource';
-import { canonicalStringify } from './trustedContractBaseline';
+} from './simulationPackageSource.js';
+import { canonicalStringify } from './trustedContractBaseline.js';
 
 type SimulationDraftBaseline = {
   version: 1;

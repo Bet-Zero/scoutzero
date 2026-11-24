@@ -34,13 +34,13 @@ import {
   seasonForSalaryCapYear,
   trustedContractBaselineMetadata,
   type TrustedContractReleasePin,
-} from './trustedContractBaseline';
+} from './trustedContractBaseline.js';
 import {
   loadSimulationFinancialBaseline,
   simulationContractRelease,
-} from './simulationFinancialBaseline';
-import { loadTrustedDraftBaseline } from './trustedDraftBaseline';
-import { loadSimulationDraftBaseline } from './simulationDraftBaseline';
+} from './simulationFinancialBaseline.js';
+import type { loadTrustedDraftBaseline } from './trustedDraftBaseline.js';
+import { loadSimulationDraftBaseline } from './simulationDraftBaseline.js';
 
 const ARCHITECT_WORLDS_COLLECTION = 'architect_worlds';
 const CONTRACT_BASELINES_SUBCOLLECTION = 'contractBaselines';
@@ -416,7 +416,7 @@ export type WorldInitializationDependencies = {
   loadRetained?: typeof loadTrustedContractRelease;
   loadFinancial?: typeof loadSimulationFinancialBaseline;
   loadDraft?: typeof loadSimulationDraftBaseline;
-  loadTrustedDraft?: typeof loadTrustedDraftBaseline;
+  loadTrustedDraft: typeof loadTrustedDraftBaseline;
   financialSha256?: string;
   ownerPreview?: boolean;
   serverTimestamp?: () => unknown;
@@ -431,7 +431,7 @@ export type WorldInitializationDependencies = {
 export async function initializeArchitectWorldService(
   db: Firestore,
   request: { data: InitializeArchitectWorldRequest; auth?: { uid: string } },
-  dependencies: WorldInitializationDependencies = {}
+  dependencies: WorldInitializationDependencies
 ) {
   const commitWrites =
     dependencies.commitWrites ??
@@ -657,9 +657,7 @@ export async function initializeArchitectWorldService(
           description: `${description}\n${SIMULATION_DESCRIPTION_NOTE}`,
         });
       }
-      draftBaseline = (
-        dependencies.loadTrustedDraft ?? loadTrustedDraftBaseline
-      )();
+      draftBaseline = dependencies.loadTrustedDraft();
       if (draftBaseline && simulationBaseline)
         throw new Error(
           'Software draft fixtures and public-data simulation inputs cannot be combined.'
