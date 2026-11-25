@@ -2,14 +2,14 @@
 import {
   readSimulationPackageBytes,
   type ReadStorageObject,
-} from './simulationPackageSource';
+} from './simulationPackageSource.js';
 import {
   loadTrustedContractRelease,
   parseTrustedContractReleaseArtifact,
   type TrustedContractRelease,
   type TrustedContractReleaseDescriptor,
   type TrustedContractReleasePin,
-} from './trustedContractBaseline';
+} from './trustedContractBaseline.js';
 
 type SimulationPackage = {
   classification: 'SIMULATION';
@@ -26,7 +26,8 @@ type SimulationPackage = {
 /** The authenticated package may select a new starting release, never a client. */
 export function simulationContractRelease(
   baseline: SimulationPackage | null,
-  parentPin?: TrustedContractReleasePin
+  parentPin?: TrustedContractReleasePin,
+  loadRetained: typeof loadTrustedContractRelease = loadTrustedContractRelease
 ): TrustedContractRelease {
   const packaged = baseline?.contractRelease;
   if (
@@ -49,13 +50,17 @@ export function simulationContractRelease(
     return release;
   }
   // Retained historical worlds keep their exact release when copied.
-  return loadTrustedContractRelease(parentPin);
+  return loadRetained(parentPin);
 }
 export async function loadSimulationFinancialBaseline(
   readObject?: ReadStorageObject
 ): Promise<SimulationPackage | null> {
   const bytes = await readSimulationPackageBytes('financial', readObject);
   if (!bytes) return null;
+  return parseSimulationFinancialBaseline(bytes);
+}
+
+export function parseSimulationFinancialBaseline(bytes: Buffer) {
   const value = JSON.parse(bytes.toString()) as SimulationPackage;
   if (
     value.classification !== 'SIMULATION' ||

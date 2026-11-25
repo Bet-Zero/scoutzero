@@ -1,7 +1,33 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "work": false,
+      "bze-243-free-world-proof": false,
+      "bze-243-free-world-proof-review": false,
+      "architect-owner-preview": false
+    }
+  },
+  "functions": {
+    "api/architect/world.ts": {
+      "maxDuration": 120,
+      "includeFiles": "{.scoutzero-dev/world-packages/financial-current-v4.json,.scoutzero-dev/world-packages/draft-connected-v5.json,public/architect/contract-source-releases/*.json}"
+    }
+  },
   "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "status": 404 },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/\\.scoutzero-dev(?:/.*)?",
+      "status": 404
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/api/(.*)",
+      "status": 404
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }

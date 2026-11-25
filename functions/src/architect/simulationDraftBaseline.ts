@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import {
   readSimulationPackageBytes,
   type ReadStorageObject,
-} from './simulationPackageSource';
-import { canonicalStringify } from './trustedContractBaseline';
+} from './simulationPackageSource.js';
+import { canonicalStringify } from './trustedContractBaseline.js';
 
 type SimulationDraftBaseline = {
   version: 1;
@@ -23,6 +23,10 @@ export async function loadSimulationDraftBaseline(
 ) {
   const bytes = await readSimulationPackageBytes('draft', readObject);
   if (!bytes) return null;
+  return parseSimulationDraftBaseline(bytes);
+}
+
+export function parseSimulationDraftBaseline(bytes: Buffer) {
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const baseline = JSON.parse(
     bytes.toString('utf8')
