@@ -180,12 +180,13 @@ Run `vercel build --standalone` from a clean Git checkout of the reviewed
 `architect-owner-preview` branch. Before uploading the private prebuilt bundle,
 compare both server-package digests to the pins and verify neither package is
 in the static output or any other function. Check that Node can load the
-standalone function's emitted handler without a TypeScript loader.
+standalone handler with automatic module detection disabled. The Architect
+source package declares the emitted modules' format explicitly.
 
 ```bash
 (
   cd .vercel/output/functions/api/architect/world.func
-  node --input-type=module -e 'const entry = await import("./api/architect/world.js"); if (typeof entry.default !== "function") process.exit(1)'
+  node --no-experimental-detect-module --input-type=module -e 'const entry = await import("./api/architect/world.js"); if (typeof entry.default !== "function") process.exit(1)'
 )
 ```
 
