@@ -1672,6 +1672,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     test.setTimeout(180000);
     const { worldId } = await executePersistedReviewTradeProof(page, testInfo, { standardCount: 15 });
     await page.reload({ waitUntil: 'domcontentloaded' });
+    await reenterDashboardViaAppNavigation(page);
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
     await openDashboardTab(page, 'Roster');
