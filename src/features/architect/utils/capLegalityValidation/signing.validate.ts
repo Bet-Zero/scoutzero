@@ -6,6 +6,10 @@
  * Wave 10 Step 2: Extracted from signing.ts (L970–L1986).
  */
 
+import {
+  minimumSigningSeasonDays,
+  prorateSigningMinimum,
+} from '@/features/architect/utils/signings/minimumSigningProration';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import { hasPendingSeasonTaxBaseline } from '../signings/pendingTaxBaseline';
 import type { CapRulesProfile } from '@/features/architect/utils/capRulesProfile';
@@ -574,10 +578,12 @@ export function validateSigning({
     signingContractYears === 1 &&
     !isSigningYosUnreliable &&
     signingYearsOfService >= 3;
+  const minimumSigningDays =
+    signingMechanism === 'MINIMUM' ? minimumSigningSeasonDays(asOfDate, year) : null;
+  const firstYearMinimum = (yearsOfService: number) =>
+    prorateSigningMinimum(rules.salaries.getMinimumForYOS(yearsOfService), minimumSigningDays);
   const minimumTeamCharge = !isSigningYosUnreliable
-    ? rules.salaries.getMinimumForYOS(
-        minimumReimbursementApplies ? 2 : signingYearsOfService
-      )
+    ? firstYearMinimum(minimumReimbursementApplies ? 2 : signingYearsOfService)
     : null;
   if (signingMechanism === 'MINIMUM' && isSigningYosUnreliable) {
     warnings.push({
@@ -644,7 +650,7 @@ export function validateSigning({
     if (Number.isFinite(firstYearSalary)) {
       // Get player's years of service - defaults to 0 (rookie) if not found
       const yos = getMutationYearsOfService(player);
-      const minSalary = rules.salaries.getMinimumForYOS(yos);
+      const minSalary = firstYearMinimum(yos);
 
       // Check if first-year salary is below minimum
       if (firstYearSalary < minSalary) {
@@ -796,7 +802,7 @@ export function validateSigning({
         // MINIMUM mechanism: salary must be EXACTLY at minimum (not above)
         // This enforces "minimum exception" means minimum salary, not just "at least minimum"
         const yos = getMutationYearsOfService(player);
-        const minSalary = rules.salaries.getMinimumForYOS(yos);
+        const minSalary = firstYearMinimum(yos);
 
         if (!isSigningYosUnreliable && firstYearSalary > minSalary) {
           violations.push({
@@ -1032,7 +1038,7 @@ export function validateSigning({
 
       if (firstYearSalary !== null) {
         const yos = getMutationYearsOfService(player);
-        const minSalary = rules.salaries.getMinimumForYOS(yos);
+        const minSalary = firstYearMinimum(yos);
 
         // Block if salary is above minimum while team is at/above second apron
         if (!isSigningYosUnreliable && firstYearSalary > minSalary) {

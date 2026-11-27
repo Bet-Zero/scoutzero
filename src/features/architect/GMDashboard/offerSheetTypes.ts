@@ -63,6 +63,7 @@ export interface FreeAgencySectionProps {
   freeAgents?: unknown[] | null;
   currentYear: number;
   worldAsOfDate?: string | null;
+  teamCapSheet?: FreeAgentPoolProps['teamCapSheet'];
   actionOwner: FreeAgencyActionOwner;
   playersMap?: Record<string, unknown>;
   outgoingOfferSheets?: OfferSheetLike[] | null;

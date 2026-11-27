@@ -119,6 +119,11 @@ export const CapHoldItemZ = z
     governedContractEventId: z.string().optional(),
   });
 
+const January10ProrationZ = z.object({
+  salaryCapYear: z.number().int(),
+  unusedAmount: z.number().int().nonnegative(),
+});
+
 const MleExceptionZ = z.object({
   type: z.string().optional(),
   available: z.boolean().optional(),
@@ -128,6 +133,7 @@ const MleExceptionZ = z.object({
   expiresOn: z.string().optional(),
   createdFrom: z.string().optional(),
   createdOn: z.string().optional(),
+  january10Proration: January10ProrationZ.optional(),
 });
 
 const BaeExceptionZ = z.object({
@@ -137,6 +143,7 @@ const BaeExceptionZ = z.object({
   remainingAmount: MoneyZ.optional(),
   expiresOn: z.string().optional(),
   notes: z.string().optional(),
+  january10Proration: January10ProrationZ.optional(),
 });
 
 const DpeExceptionZ = z.object({

@@ -383,9 +383,11 @@ function validateSigningSideMutation({
           }
         : null;
   const governedSigningViolations =
-    governedSigningAuthority?.status === 'needs-input'
+    governedSigningAuthority && governedSigningAuthority.status !== 'complete'
       ? governedSigningAuthority.reasons.map((message) => ({
-          rule: 'governed_signing_needs_input',
+          rule: governedSigningAuthority.status === 'blocked'
+            ? 'governed_signing_exception_balance'
+            : 'governed_signing_needs_input',
           message,
           severity: 'error' as const,
         }))

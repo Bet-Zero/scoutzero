@@ -1,3 +1,10 @@
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
+import { resolveOrdinaryExceptionSigningProration } from '@/features/architect/utils/signings/governedSigningAuthority';
+import {
+  minimumSigningSeasonDays,
+  prorateSigningMinimum,
+} from '@/features/architect/utils/signings/minimumSigningProration';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
@@ -121,12 +128,65 @@ export const useEditContractModalForm = ({
 
   const signingGuardrails = useMemo(() => {
     if (!isSigningAction) return null;
-    return buildSigningGuardrails(
+    const guardrails = buildSigningGuardrails(
       playerRulesProfile,
       capSettings ?? undefined,
       selectedException
     );
-  }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
+    const exception = resolveOrdinaryExceptionSigningProration(
+      teamCapSheet,
+      selectedException,
+      asOfDate,
+      ACTION_YEAR
+    );
+    if (
+      exception &&
+      'remaining' in exception &&
+      !isOfferSheet &&
+      selectedAction !== 'signAndTrade'
+    ) {
+      return {
+        ...guardrails,
+        maxFirstYear: Math.min(
+          guardrails.maxFirstYear ?? Infinity,
+          exception.remaining
+        ),
+        maxYears: 1,
+      };
+    }
+    const days = minimumSigningSeasonDays(asOfDate, ACTION_YEAR);
+    if (
+      selectedException !== 'Minimum' ||
+      !days ||
+      isOfferSheet ||
+      selectedAction === 'signAndTrade'
+    ) {
+      return guardrails;
+    }
+    const minimum = prorateSigningMinimum(
+      getCapRulesForYear(ACTION_YEAR).salaries.getMinimumForYOS(
+        getYearsOfService(player)
+      ),
+      days
+    );
+    return {
+      ...guardrails,
+      minFirstYear: Math.max(minimum, guardrails.qoAmount),
+      maxFirstYear: minimum || null,
+      maxYears: days.inRegularSeason ? 1 : guardrails.maxYears,
+    };
+  }, [
+    isSigningAction,
+    playerRulesProfile,
+    capSettings,
+    selectedException,
+    asOfDate,
+    ACTION_YEAR,
+    isOfferSheet,
+    selectedAction,
+    teamCapSheet,
+    player,
+  ]);
 
   const availableSigningExceptions = useMemo<SigningExceptionOption[]>(() => {
     return SIGNING_EXCEPTION_OPTIONS.filter((option) => {
