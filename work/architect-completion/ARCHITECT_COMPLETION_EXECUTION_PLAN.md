@@ -1,0 +1,185 @@
+# Architect completion execution plan
+
+Source: November 26, 2026 completion review and findings workbook. The
+[V1 finish checklist](V1_FINISH_CHECKLIST.md) remains the sole V1 status home.
+[V1 scope](../../docs/agent-guides/architect-v1-completion-contract.md) stays
+frozen at a dated 2026–27 starting world and the promised current-season
+workflows. BZE-243 owns the finish. BZE-267 is completed foundation.
+Use [current agent rules](../../AGENTS.md) and the
+[Architect boundary](../../docs/agent-guides/architect-boundary.md).
+The Phase 3A execution guide is archived. For exact NBA rules use
+`npm run architect:canon:lookup -- <leaf>`.
+
+## Execution order
+
+1. **Restore main.** Land the single read-only consumer registration with
+   green candidate checks, fresh independent review and owner merge approval.
+   Verify landed main. [Failed CI run](https://github.com/Bet-Zero/scoutzero/actions/runs/45925833448)
+2. **Reconcile the release candidate.** Three-way integrate #665 with green
+   main, preserving #664's workflow and guide retirement. The local merge
+   preview was conflict-free and kept those paths byte-identical. #662 is
+   an ancestor of #665. Keep its lifecycle and recovery. Preserve #660's
+   accepted Node 22 Functions manifest/lock and optional callable runtime
+   identity work as a held compatibility change. Confirm that need against
+   the selected runtime before porting it. The proven HTTP route can operate
+   without activating those callables. Use the owner-approved no-billing route.
+   Keep automatic Vercel deployment disabled for the new integration branch
+   before pushing it. Existing branch holds cover only named branches.
+   Carry forward server module/startup,
+   same-origin owner access, deletion fences and the slug/code inventory fix.
+   Use the signed-in hosted create/trade/reload/history/delete/recreate evidence
+   at its recorded scope. The next release must account for required indexes,
+   Rules, runtime and scoped older-world proof. Commit reproducible index
+   definitions and retain the reviewed before-image for authorized Rules
+   changes. Keep all three PRs until their
+   unique changes and evidence have a durable disposition.
+   [#665](https://github.com/Bet-Zero/scoutzero/pull/665) ·
+   [#662](https://github.com/Bet-Zero/scoutzero/pull/662) ·
+   [#660](https://github.com/Bet-Zero/scoutzero/pull/660)
+3. **Fix ordinary actions.** On green main do saved-roster legality, ordinary
+   signing proration, then app-derived trade money. Run the initial action
+   readiness slice alongside roster work and extend it with each action.
+   Distinguish rule prohibition, closed window, missing decisive fact,
+   missing approved assumption and unimplemented mechanism. Use dated evidence
+   and eligible denominators for the 30 teams. Require only the inputs each
+   action needs. Protect existing free-agent and pending-action inputs before
+   enabling any source refresh.
+4. **Finish the current experience.** Follow the dependencies below for the
+   clock guard, books and rights, History/Compare/Guide, accessibility and
+   final proof. Keep known liabilities and obligations. Show projections
+   separately from final tax assessment, whose baseline needs each team's
+   last regular-season game (CBA2-C08.1). Validate lawful cases at their
+   world dates and exercise save, room return and full reload for each
+   touched team. For changed UI verify 1280×720 and phone width.
+5. **Close V1 through its checklist.** Reuse accepted engines, atomic writes,
+   revision and digest protections and valid case evidence. Add focused proof
+   for changed or missing behavior and then one integrated scenario battery.
+   Release, source-data writes, Rules/index publication, migration, billing,
+   settings changes and merge require their existing authorizations. Obtain
+   the owner's hands-on acceptance for E2.
+
+## Active queue
+
+All six issues are children of BZE-243. Main health is the first gate. The
+integration candidate and ordinary defects can use the green base independently
+where their code and proof do not overlap. Final integrated proof joins them.
+
+| Issue | Outcome | Prerequisite |
+| --- | --- | --- |
+| [BZE-347](https://linear.app/bzero/issue/BZE-347) | Restore main contract-history validation | First |
+| [BZE-348](https://linear.app/bzero/issue/BZE-348) | Reconcile protected Preview with main | BZE-347 |
+| [BZE-349](https://linear.app/bzero/issue/BZE-349) | Enforce final roster legality at trade save | BZE-347 |
+| [BZE-350](https://linear.app/bzero/issue/BZE-350) | Produce first action-readiness slice | BZE-347, alongside BZE-349 |
+| [BZE-351](https://linear.app/bzero/issue/BZE-351) | Apply ordinary signing proration on lawful dates | BZE-349, BZE-350 |
+| [BZE-352](https://linear.app/bzero/issue/BZE-352) | Derive known trade money in the app | BZE-351 |
+
+## Proposed full Architect scope
+
+Propose a private multi-season GM simulator. Select a finite supported horizon
+and projection policy before implementation, with two consecutive complete
+annual transitions as the minimum proof. Cover ordinary first/second-round
+portfolios, obligation settlement, rookie rights/outcomes, options/extensions,
+common signing and waiver routes, S&T with picks, incentives, trade bonuses,
+poison pill, DPE, authored contract lifecycles, and scenario branching/recovery.
+Two-Way conversion and Ten-Day/rest-of-season routes are proposed additions.
+Preserve exact accepted rules and distinguish dated known facts and labeled
+simulation assumptions.
+
+Set the shared requirements for future calendars, contract provenance and
+transition inputs before expanding authoring. Build the seasonal transition
+seams on the accepted engine, then exercise connected draft settlement and
+rookie authoring before the complete multi-year proof. Admit compensation and
+exception routes by the actual affected population and only with enough
+evidence for their books, history and subsequent transactions.
+
+Owner choices stay outside the active queue. They include horizon and refresh policy,
+capacity and recovery promise, conditional options, waiver/set-off depth,
+Exhibit/Summer and roster/medical detail, four teams, the guided Offseason
+room, interactive draft night, custom pick authoring, and real-franchise
+history or historical certification. Any operational protection settings
+are a separate choice. Existing V1 exclusions and adjacent product boundaries
+apply. The full-product records below are proposals until their scope is
+chosen.
+
+## Finding coverage and prerequisites
+
+Numbers in **After** refer to ARCH IDs. A dependency can supply an
+implementation input or a later proof. Three feedback loops have distinct
+entry and exit steps:
+
+- Integrate 001 first, prove 027 and 029–034 against that candidate, then
+  finish 001 release readiness and seek 035 acceptance.
+- Define 030 version identity first, implement 012 and 061, then rehearse
+  030 rotation across new and existing worlds.
+- Agree 037, define 036 transition seams and 040 provenance requirements,
+  then implement basic 046 terms, 040 replay, and 038/039 draft outcomes.
+  Integrate 036 and run the shared multi-year 036/040 proof.
+
+The proof rows apply to the selected scope. A dash means existing authority
+or evidence is sufficient to start.
+
+| Finding | Disposition and finish condition | After |
+| --- | --- | --- |
+| ARCH-001 | Implement the main repair and integrate the protected lifecycle. Prove integrated build and affected lifecycle paths, then use the result in release acceptance. | BZE-347 first; stable release also needs 027, 029–034 |
+| ARCH-002 | Correct live pointers to checklist, candidate and next issue. Retain historical records and label their evidence accurately. | — |
+| ARCH-003 | Use dated roster policy at preflight and before any saved-trade write. Prove 15 standard plus 3 Two-Way, rejection of either excess, and applicable dated exceptions/grace. | BZE-347; CBA2-R06.8, CBA2-C20.1 |
+| ARCH-004 | Guard unsupported date moves now. Prove forward/backward/boundary moves with pending offers, options and prior actions; connect lawful progression later. | BZE-347 now; 036/037 for future progression |
+| ARCH-005 | Compute ordinary Minimum and affected exception proration. Prove pre-opening October 2, lawful November and January saves/reload, and cutoff refusals. | 003, 007 initial slice; governed calendar; CBA2-C13.23 and applicable exception leaves |
+| ARCH-006 | Derive salaries/apron effects from governed books and matching. Prove HOU–MIL and another legal trade without manual arithmetic, recomputation and stale-choice expiry. | 005, 007 initial slice |
+| ARCH-007 | Establish per-action 30-team readiness and plain reasons. Start from the November 14 snapshot, then add tax, rights, dates, cash and selected compensation as each becomes relevant. | BZE-347; extend with 008–011, 042–045 and 062 |
+| ARCH-008 | Implement labeled tax projection and receipt distinction. Verify known cap/apron effects and preserve unavailable final assessment. | 007 initial slice; CBA2-C08.1 |
+| ARCH-009 | Resolve action-critical dated rights/holds and future obligations. Prove own FA/RFA effects and field-specific gaps. | 007 initial slice, 008 tax distinction, 012 |
+| ARCH-010 | Supply eligible dated option/ETO terms and reuse option engine. Exercise/no-exercise, closed windows and books/history/Compare persist correctly. Conditional depth is an owner choice. | 004, 007, 009; 036/037 for future-window proof |
+| ARCH-011 | Supply decisive contract/league evidence for eligible extension families. Verify Veteran, ten-Team-Seasons, Designated Veteran and Rookie Scale with lawful dates or governed fixtures. | 007 and applicable dated evidence |
+| ARCH-012 | Pin the world-relevant FA universe/terms. Prove a controlled release rotation leaves old worlds stable and new worlds can take a new version. | 030 versioning design; coordinate final rotation with 061 |
+| ARCH-013 | Verify FA identity/aliases, age date or DOB and height units against sources. Fix approved facts and distinguish appearance from eligibility. | 012 |
+| ARCH-014 | Reconcile ordinary seconds by team/year and reuse connected-rights custody. Prove transfer, reload, branch and history without duplicate claims. | 030 versioning, 015 receipt/Compare path |
+| ARCH-015 | Surface actual pick and connected-right deltas from saved receipts. Prove before/after for all affected teams after reload. | Existing #659 receipts and integrated 001 for candidate proof |
+| ARCH-016 | Show exception creation/consumption in Compare. Prove net and per-move effects from retained records. | 006 for representative trades; included in 026 proof |
+| ARCH-017 | Paginate Compare from the original baseline. Prove 51+ events, earlier deltas, branch and reload. | Existing snapshot/event models; 015/016 for combined proof |
+| ARCH-018 | Attribute opening obligations separately from saved moves. Prove an empty new timeline and correctly attributed new waiver after reload. | Existing history/waiver model |
+| ARCH-019 | Preserve explicit stretched, explicit unstretched and unknown with unchanged underlying money. | 018 attribution fixtures |
+| ARCH-020 | Reuse roster policy in Guide. Prove 15+3, each excess and unknown list state. | 003 |
+| ARCH-021 | Use shared signed cap/apron display. Prove positive, zero and negative space without reliance on color. | Existing books |
+| ARCH-022 | Use plain, actionable feedback for success, rejection, unavailable, pending and retry states. | 007 reasons and affected action repairs |
+| ARCH-023 | Fix dialogs and verify focus, cancellation, deletion feedback, all changed states at desktop/phone and realistic full rosters. | 001 lifecycle, 020–022 and changed UI |
+| ARCH-024 | Prove stage retention or explicit discard across rooms, teams and worlds. Integrate the journey into the final battery. | 001 world identity and 027 saved-write boundary |
+| ARCH-025 | Verify existing export matches the mixed deal and identifies proposed/applied status. | 006, 024; include in 026 |
+| ARCH-026 | Prove current W1–W15 promises through normal entry points at lawful times, with cross-room and persisted consistency, and honest scoped exclusions. | Affected current defects/readiness, 023–025, 027/029, 060–063 |
+| ARCH-027 | Prove duplicate retry, stale tab, interrupted response and atomic multi-team no-partial-write behavior. | 001 candidate |
+| ARCH-028 | Prove independent branching and parent/child constraints. Owner chooses recovery depth and capacity; demonstrate an authorized restore if promised. | 027, 029, 030; 060 for pending offers |
+| ARCH-029 | Prove preservation for the relevant older-world cohort or approved representatives. Record regenerated fixtures and missing original exports at their actual scope. | 001, 027, 030 version identity; reuse #659 proof |
+| ARCH-030 | Define private version/hash/recovery and intentional refresh policy. Prove clean rebuild and old-world stability across rotation. | Design before 012/061; rotation after both and 031 build recipe |
+| ARCH-031 | Reconcile runtime, Rules and required indexes, including History/Recent Moves. Prove repeatable package/build and both current/legacy queries on authorized target. | 001 candidate and 030 manifest; deployment approval |
+| ARCH-032 | Prove remaining effective access boundaries for candidate, least privilege and private package isolation. Reuse the recorded signed-in journey. | 001, 031; permission changes reserved |
+| ARCH-033 | Measure resource use and shared headroom, then let owner choose sufficient scenario capacity and recovery budget. | 027, 030, 031; 028 recovery choice for final limits |
+| ARCH-034 | Apply scoped green checks and fresh independent review where required. Optional branch/ruleset enforcement is an owner settings decision. | Current AGENTS; verify at 001/035 |
+| ARCH-035 | Obtain authorized D2 delivery and E2 hands-on acceptance of a concrete release, with explicit capabilities and limitations. | 001, 026, 029–034 |
+| ARCH-036 | Define transition seams after future authority; use the existing 30-team engine. Prove two consecutive atomic annual transitions across all teams, branches and reloads. | 004, 037 for seams; 038–040 for full proof |
+| ARCH-037 | Owner selects horizon/projection policy. Establish versioned future calendar and levels, preserve known actuals and expose projections on replay. | 030 version policy |
+| ARCH-038 | Settle protected, pooled, swap and frozen rights from simulated results, preserving lineage and all parties. | 014, 037 and 036 transition seams |
+| ARCH-039 | Connect settled selection, rookie rights, terms and books; prove signed/unsigned outcomes into the next year. | 038, 040 requirements and 046 basic terms |
+| ARCH-040 | Implement replayable authored provenance/shared lifecycle. Prove sign, advance, amend, trade and waive without fabricating source artifacts. | 037, 036 seams for design; 046 and 036 integration for chained proof |
+| ARCH-041 | Support offseason S&T with connected picks, first-apron hard cap and atomic reload; certify applicable compensation variants. | 036–038, 046; 042/043 where applicable |
+| ARCH-042 | Fold governed incentive evidence/assumptions into matching and books. Verify independent salary results and replay. | 007/008, 030; 046 where authored |
+| ARCH-043 | Preserve known bonuses and govern allocation, waiver, payer and repeated trades. Verify independently against Canon and reconcile policy. | 040 provenance, 046 basic terms |
+| ARCH-044 | Apply sender/receiver poison-pill bases with the proper effective date. Prove mixed trade and boundary controls. | 011, 040 provenance, 046 basic terms |
+| ARCH-045 | Support dated DPE grant/use, expiry and single consumption through signing/trade. Verify History/Compare. | 016, 037, 046 basic terms |
+| ARCH-046 | Extend existing contract editors to selected structured terms and guarantees. Verify future books and lifecycle; owner chooses conditional-option depth. | 037, 040 requirements before authoring; integrate 042–044 as their authorities land |
+| ARCH-047 | Propose Two-Way signing/conversion across dates with correct category and money effects; prove refusal at limits. | 003, 036 seams, 040, 046 |
+| ARCH-048 | Propose Ten-Day and rest-of-season routes; owner chooses Exhibit/Summer depth. Prove expiry, repeat limits, dates and roster treatment. | 004, 005, 036 seams, 046 |
+| ARCH-049 | Support second-round signing routes using governed rookie rights and common authoring. Prove exception, minimum alternative and future books. | 014, 036 seams, 039, 046 |
+| ARCH-050 | Expose governed renegotiation and chosen extension combination. Prove eligibility, cap constraints, persistent current/future books and Compare. | 011, 040, 046 |
+| ARCH-051 | Propose common claims, priority and clearing; owner chooses partial/medical/non-NBA set-off depth. Prove atomic acquisition and preserved obligations. | 004, 027, 036 seams, 040 |
+| ARCH-052 | Owner chooses operational list/medical depth beyond necessary legality state. Prove selected actions and state limits honestly. | 003, 004 and selected 045, 047, 048 |
+| ARCH-053 | Verify conditional cash/reimbursement status before sizing. Implement selected legal paths or record owner-approved exclusion; prove ledger conservation. | 062, 043/046 where applicable |
+| ARCH-054 | Owner decides four-team breadth. If selected, prove unified atomic routing and all participants visible. Existing scope covers two/three teams. | 026, 027 and relevant trade mechanisms |
+| ARCH-055 | Owner decides guided Offseason presentation. Keep the room parked under V1. If chosen, connect it to the working offseason actions. | 036–041 |
+| ARCH-056 | Owner decides interactive draft night. If selected, use shared outcomes and verify rights/contracts after reload. | 038/039 |
+| ARCH-057 | Keep custom authoring hidden under V1. Owner may choose later sandbox forms with provenance and custody validation. | 014/038 if chosen |
+| ARCH-058 | Preserve agreed simulation boundary with transparent assumptions and opening obligations. Owner may separately choose real-history reconstruction/certification. | 018/030 for proof of simulation promise |
+| ARCH-059 | Preserve agreed exclusion of adjacent scouting tools, new provider, platform rewrite and generic polish. Admit concrete dependencies only. | Applies throughout |
+| ARCH-060 | Contain unsupported pending-offer copies before writes, then preserve child offer authority and mirrors. Prove independent resolution and reload in both worlds. | 027 and 028 branch contract; complete branch proof uses 060 |
+| ARCH-061 | Resolve pending actions with pinned creation evidence and intact digest checks. Prove both match and decline across controlled source rotation. | 012, 030 versioning; 060 for the copied-world case |
+| ARCH-062 | Establish dated annual cash ledgers or permitted visible assumptions preserving prior spend. Prove both parties and saved effects, then future rollover. | 007 and 030 versioning; 036/037 for rollover |
+| ARCH-063 | Accept complete rare-event input with exact obligations. Prove neither/either/both combinations and keep missing-input behavior. | Existing compiler and governed inputs |
