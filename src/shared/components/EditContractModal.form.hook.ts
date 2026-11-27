@@ -126,6 +126,17 @@ export const useEditContractModalForm = ({
     return currentSeasonSalary ? Math.round(currentSeasonSalary * 1.05) : null;
   }, [CURRENT_YEAR, player]);
 
+  const ordinarySigningDate =
+    selectedException !== 'None' && !isOfferSheet && selectedAction !== 'signAndTrade'
+      ? asOfDate
+      : null;
+  const ordinaryExceptionTeam =
+    ordinarySigningDate && selectedException !== 'Minimum' ? teamCapSheet : null;
+  const minimumYearsOfService =
+    ordinarySigningDate && selectedException === 'Minimum'
+      ? getYearsOfService(player)
+      : null;
+
   const signingGuardrails = useMemo(() => {
     if (!isSigningAction) return null;
     const guardrails = buildSigningGuardrails(
@@ -133,18 +144,14 @@ export const useEditContractModalForm = ({
       capSettings ?? undefined,
       selectedException
     );
+    if (!ordinarySigningDate) return guardrails;
     const exception = resolveOrdinaryExceptionSigningProration(
-      teamCapSheet,
+      ordinaryExceptionTeam,
       selectedException,
-      asOfDate,
+      ordinarySigningDate,
       ACTION_YEAR
     );
-    if (
-      exception &&
-      'remaining' in exception &&
-      !isOfferSheet &&
-      selectedAction !== 'signAndTrade'
-    ) {
+    if (exception && 'remaining' in exception) {
       return {
         ...guardrails,
         maxFirstYear: Math.min(
@@ -154,18 +161,12 @@ export const useEditContractModalForm = ({
         maxYears: 1,
       };
     }
-    const days = minimumSigningSeasonDays(asOfDate, ACTION_YEAR);
-    if (
-      selectedException !== 'Minimum' ||
-      !days ||
-      isOfferSheet ||
-      selectedAction === 'signAndTrade'
-    ) {
-      return guardrails;
-    }
+    if (minimumYearsOfService === null) return guardrails;
+    const days = minimumSigningSeasonDays(ordinarySigningDate, ACTION_YEAR);
+    if (!days) return guardrails;
     const minimum = prorateSigningMinimum(
       getCapRulesForYear(ACTION_YEAR).salaries.getMinimumForYOS(
-        getYearsOfService(player)
+        minimumYearsOfService
       ),
       days
     );
@@ -180,12 +181,10 @@ export const useEditContractModalForm = ({
     playerRulesProfile,
     capSettings,
     selectedException,
-    asOfDate,
+    ordinarySigningDate,
     ACTION_YEAR,
-    isOfferSheet,
-    selectedAction,
-    teamCapSheet,
-    player,
+    ordinaryExceptionTeam,
+    minimumYearsOfService,
   ]);
 
   const availableSigningExceptions = useMemo<SigningExceptionOption[]>(() => {
