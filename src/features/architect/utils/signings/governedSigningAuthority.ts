@@ -94,6 +94,28 @@ function exactMoney(value: unknown): number | null {
     : null;
 }
 
+/** Existing ordinary signing routes pause where the conservative authority lacks proration. */
+export function ordinarySigningProrationUnavailable(
+  date: string,
+  salaryCapYear: number,
+  mechanism: string
+): string | null {
+  if (
+    date >= `${salaryCapYear}-01-10` &&
+    ['FULL_MLE', 'TPMLE', 'ROOM_MLE', 'BAE'].includes(mechanism)
+  ) {
+    return (
+      'This post-January 10 exception signing needs the January 10 unused amount and exact daily-proration record.'
+    );
+  }
+  if (date >= `${salaryCapYear - 1}-10-01` && mechanism === 'MINIMUM') {
+    return (
+      'This Regular Season Minimum signing needs the exact Regular Season-day proration record.'
+    );
+  }
+  return null;
+}
+
 export function resolveGovernedSigningAuthority({
   team,
   contract,
@@ -182,19 +204,8 @@ export function resolveGovernedSigningAuthority({
       'This ordinary signing is inside the Moratorium and does not identify an enumerated signing branch.'
     );
   }
-  if (
-    date >= `${salaryCapYear}-01-10` &&
-    ['FULL_MLE', 'TPMLE', 'ROOM_MLE', 'BAE'].includes(mechanism)
-  ) {
-    reasons.push(
-      'This post-January 10 exception signing needs the January 10 unused amount and exact daily-proration record.'
-    );
-  }
-  if (date >= `${salaryCapYear - 1}-10-01` && mechanism === 'MINIMUM') {
-    reasons.push(
-      'This Regular Season Minimum signing needs the exact Regular Season-day proration record.'
-    );
-  }
+  const unavailableRoute = ordinarySigningProrationUnavailable(date, salaryCapYear, mechanism);
+  if (unavailableRoute) reasons.push(unavailableRoute);
 
   const envelope = effectiveAt
     ? resolveGovernedSeasonEnvelope({
