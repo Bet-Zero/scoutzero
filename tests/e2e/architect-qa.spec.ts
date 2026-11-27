@@ -1671,8 +1671,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
   test('BZE-349: Saves and reloads a lawful November trade at 15 standard players', async ({ page }, testInfo) => {
     test.setTimeout(180000);
     const { worldId } = await executePersistedReviewTradeProof(page, testInfo, { standardCount: 15 });
+    // Return through the roster route before reloading. A trade-room deep
+    // link would restore its overlay over the dashboard.
+    await page.goto(`${GM_DASHBOARD_URL}?season=2027&room=roster`);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await reenterDashboardViaAppNavigation(page);
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
     await openDashboardTab(page, 'Roster');
