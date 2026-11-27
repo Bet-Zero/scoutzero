@@ -51,11 +51,7 @@ export function simulationContractRelease(
   // Retained historical worlds keep their exact release when copied.
   return loadTrustedContractRelease(parentPin);
 }
-export async function loadSimulationFinancialBaseline(
-  readObject?: ReadStorageObject
-): Promise<SimulationPackage | null> {
-  const bytes = await readSimulationPackageBytes('financial', readObject);
-  if (!bytes) return null;
+export function parseSimulationFinancialBaseline(bytes: Buffer): SimulationPackage {
   const value = JSON.parse(bytes.toString()) as SimulationPackage;
   if (
     value.classification !== 'SIMULATION' ||
@@ -68,4 +64,11 @@ export async function loadSimulationFinancialBaseline(
     throw new Error('Expected the prepared thirty-team SIMULATION baseline.');
   if (value.contractRelease) simulationContractRelease(value);
   return value;
+}
+
+export async function loadSimulationFinancialBaseline(
+  readObject?: ReadStorageObject
+): Promise<SimulationPackage | null> {
+  const bytes = await readSimulationPackageBytes('financial', readObject);
+  return bytes ? parseSimulationFinancialBaseline(bytes) : null;
 }

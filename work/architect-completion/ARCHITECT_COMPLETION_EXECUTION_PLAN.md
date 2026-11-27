@@ -12,9 +12,10 @@ The Phase 3A execution guide is archived. For exact NBA rules use
 
 ## Execution order
 
-1. **Restore main.** Land the single read-only consumer registration with
-   green candidate checks, fresh independent review and owner merge approval.
-   Verify landed main. [Failed CI run](https://github.com/Bet-Zero/scoutzero/actions/runs/45925833448)
+1. **Restore main.** The consumer registration landed in
+   [#666](https://github.com/Bet-Zero/scoutzero/pull/666). The
+   [full main workflow](https://github.com/Bet-Zero/scoutzero/actions/runs/46078698577)
+   verified the repair.
 2. **Reconcile the release candidate.** Three-way integrate #665 with green
    main, preserving #664's workflow and guide retirement. The local merge
    preview was conflict-free and kept those paths byte-identical. #662 is
@@ -72,6 +73,19 @@ where their code and proof do not overlap. Final integrated proof joins them.
 | [BZE-350](https://linear.app/bzero/issue/BZE-350) | Produce first action-readiness slice | BZE-347, alongside BZE-349 |
 | [BZE-351](https://linear.app/bzero/issue/BZE-351) | Apply ordinary signing proration on lawful dates | BZE-349, BZE-350 |
 | [BZE-352](https://linear.app/bzero/issue/BZE-352) | Derive known trade money in the app | BZE-351 |
+
+## Inspect current action inputs
+
+Run the read-only inventory against the approved local financial package and
+its existing SHA-256 pin:
+
+```sh
+node --import tsx scripts/architect/inspectCurrentActionReadiness.ts <file> <sha256>
+```
+
+The report checks dated roster, salary books, trade window and Minimum route
+coverage for all 30 teams. Each proposal still needs its specific player and
+terms. Keep private source files and inspection output outside Git.
 
 ## Proposed full Architect scope
 
