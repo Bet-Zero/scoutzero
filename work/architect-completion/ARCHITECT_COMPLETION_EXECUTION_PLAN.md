@@ -61,7 +61,7 @@ The Phase 3A execution guide is archived. For exact NBA rules use
 
 ## Active queue
 
-All six issues are children of BZE-243. Main health is the first gate. The
+The step issues are children of BZE-243. Main health is the first gate. The
 integration candidate and ordinary defects can use the green base independently
 where their code and proof do not overlap. Final integrated proof joins them.
 
@@ -72,7 +72,8 @@ where their code and proof do not overlap. Final integrated proof joins them.
 | [BZE-349](https://linear.app/bzero/issue/BZE-349) | Enforce final roster legality at trade save | BZE-347 |
 | [BZE-350](https://linear.app/bzero/issue/BZE-350) | Produce first action-readiness slice | BZE-347, alongside BZE-349 |
 | [BZE-351](https://linear.app/bzero/issue/BZE-351) | Apply ordinary signing proration on lawful dates | BZE-349, BZE-350 |
-| [BZE-352](https://linear.app/bzero/issue/BZE-352) | Derive known trade money in the app | BZE-351 |
+| [BZE-352](https://linear.app/bzero/issue/BZE-352) | Dated trade figures landed in [#673](https://github.com/Bet-Zero/scoutzero/pull/673). Ordinary and mixed deals saved and reloaded with the money fields blank. | BZE-351 in the original sequence. This independently reviewable change proceeded during its review. |
+| [BZE-354](https://linear.app/bzero/issue/BZE-354) | Guard rewinds and year changes for current saved simulation worlds | BZE-347 |
 
 ## Inspect current action inputs
 
@@ -137,7 +138,7 @@ or evidence is sufficient to start.
 | ARCH-001 | Implement the main repair and integrate the protected lifecycle. Prove integrated build and affected lifecycle paths, then use the result in release acceptance. | BZE-347 first; stable release also needs 027, 029–034 |
 | ARCH-002 | Correct live pointers to checklist, candidate and next issue. Retain historical records and label their evidence accurately. | — |
 | ARCH-003 | Use dated roster policy at preflight and before any saved-trade write. Prove 15 standard plus 3 Two-Way, rejection of either excess, and applicable dated exceptions/grace. | BZE-347; CBA2-R06.8, CBA2-C20.1 |
-| ARCH-004 | Guard unsupported date moves now. Prove forward/backward/boundary moves with pending offers, options and prior actions; connect lawful progression later. | BZE-347 now; 036/037 for future progression |
+| ARCH-004 | Guard unsupported date moves in BZE-354. Prove a forward move, rewind refusal and year-boundary refusal. Keep pending offers, options and prior actions in the later progression proof. | BZE-347 now; 036/037 for future progression |
 | ARCH-005 | Compute ordinary Minimum and affected exception proration. Prove pre-opening October 2, lawful November and January saves/reload, and cutoff refusals. | 003, 007 initial slice; governed calendar; CBA2-C13.23 and applicable exception leaves |
 | ARCH-006 | Derive salaries/apron effects from governed books and matching. Prove HOU–MIL and another legal trade without manual arithmetic, recomputation and stale-choice expiry. | 005, 007 initial slice |
 | ARCH-007 | Establish per-action 30-team readiness and plain reasons. Start from the November 14 snapshot, then add tax, rights, dates, cash and selected compensation as each becomes relevant. | BZE-347; extend with 008–011, 042–045 and 062 |
