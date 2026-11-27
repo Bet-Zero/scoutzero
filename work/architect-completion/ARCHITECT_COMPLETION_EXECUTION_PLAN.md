@@ -23,11 +23,15 @@ The Phase 3A execution guide is archived. For exact NBA rules use
    identity work as a held compatibility change. Confirm that need against
    the selected runtime before porting it. The proven HTTP route can operate
    without activating those callables. Use the owner-approved no-billing route.
+   Keep automatic Vercel deployment disabled for the new integration branch
+   before pushing it. Existing branch holds cover only named branches.
    Carry forward server module/startup,
    same-origin owner access, deletion fences and the slug/code inventory fix.
    Use the signed-in hosted create/trade/reload/history/delete/recreate evidence
    at its recorded scope. The next release must account for required indexes,
-   Rules, runtime and scoped older-world proof. Keep all three PRs until their
+   Rules, runtime and scoped older-world proof. Commit reproducible index
+   definitions and retain the reviewed before-image for authorized Rules
+   changes. Keep all three PRs until their
    unique changes and evidence have a durable disposition.
    [#665](https://github.com/Bet-Zero/scoutzero/pull/665) ·
    [#662](https://github.com/Bet-Zero/scoutzero/pull/662) ·
