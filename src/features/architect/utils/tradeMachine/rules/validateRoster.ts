@@ -1,4 +1,8 @@
 import { validationFlags } from '@/config/validationFlags';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  governingCalendarDate,
+} from '@/features/architect/utils/governedSeason';
 import type { RosterResult, TradeTeam } from '../constants/types';
 
 /**
@@ -11,6 +15,19 @@ export const ROSTER_LIMITS = {
   MAX_TWO_WAY: 3,
   GRACE_MIN_STANDARD: 13,
 } as const;
+
+/** The current-season saved-trade limit uses the governing league calendar. */
+export function isCurrentRegularSeasonRosterDate(asOfDate: unknown): boolean {
+  const date = governingCalendarDate(asOfDate);
+  const calendar = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+    (entry) => entry.seasonKey === '2026-27' && entry.authority === 'official'
+  );
+  return Boolean(
+    date && calendar &&
+      date >= calendar.regularSeasonOpening.value &&
+      date <= calendar.regularSeasonClosing.value
+  );
+}
 
 /**
  * Canonical shared roster-limit evaluator.

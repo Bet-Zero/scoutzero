@@ -521,14 +521,15 @@ const buildReviewDepthPlayers = (
 const topUpWorldTeamRosterMinimum = async (
   worldId: string,
   teamCode: string,
-  teamName: string
+  teamName: string,
+  minimum = REVIEW_MIN_ROSTER_SIZE
 ) => {
   const db = getReviewAdminDb();
   const teamRef = db.doc(`architect_worlds/${worldId}/teams/${teamCode}`);
   const baseSnapshot = await buildHydratedWorldTeamSnapshot(teamCode, teamName);
   const existingPlayerIds = getTeamPlayerIds(baseSnapshot);
 
-  const missingPlayers = REVIEW_MIN_ROSTER_SIZE - existingPlayerIds.length;
+  const missingPlayers = minimum - existingPlayerIds.length;
   const fillerPlayers =
     missingPlayers > 0
       ? buildReviewDepthPlayers(
@@ -652,7 +653,8 @@ const electRoomSalaryPath = async (
 
 const executePersistedReviewTradeProof = async (
   page: Page,
-  testInfo: TestInfo
+  testInfo: TestInfo,
+  currentRosterTest?: { standardCount: 15 | 16 }
 ) => {
   const architectMutationErrors: Array<Record<string, unknown>> = [];
   const consoleListener = async (message: {
@@ -690,7 +692,14 @@ const executePersistedReviewTradeProof = async (
   await ensureTeamDataLoaded(page, testInfo);
   const worldId = await ensureWorldSelected(page, testInfo);
 
-  await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+  if (currentRosterTest) {
+    await getReviewAdminDb()
+      .doc(`architect_worlds/${worldId}`)
+      .update({ asOfDate: '2026-11-14' });
+  }
+  await topUpWorldTeamRosterMinimum(
+    worldId, 'LAL', 'Los Angeles Lakers', currentRosterTest?.standardCount
+  );
   await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
   await page.reload({ waitUntil: 'domcontentloaded' });
   await ensureTeamDataLoaded(page, testInfo);
@@ -756,6 +765,20 @@ const executePersistedReviewTradeProof = async (
   const applyTradeButton = page.getByRole('button', {
     name: /^Apply Trade$/i,
   });
+  if (currentRosterTest?.standardCount === 16) {
+    const rosterError = page.getByText(/LAL has 16 standard contracts/i).first();
+    await expect(rosterError).toBeVisible();
+    await expect(applyTradeButton).toBeDisabled();
+    await expect(getWorldTeamDocument(worldId, 'LAL')).resolves.toEqual(beforeTradeLalDocument);
+    await expect(getWorldTeamDocument(worldId, 'BOS')).resolves.toEqual(beforeTradeBosDocument);
+    await expect(getWorldEventDocuments(worldId)).resolves.toEqual(beforeTradeEvents);
+    await page.screenshot({ path: testInfo.outputPath('roster-refusal-1280x720.png') });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(rosterError).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('roster-refusal-390x844.png') });
+    page.off('console', consoleListener);
+    return { worldId };
+  }
   await expect
     .poll(async () => await applyTradeButton.isEnabled(), {
       timeout: 15000,
@@ -1643,6 +1666,22 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
 
     await captureEvidence(page, testInfo, 'D-MQ-003-persisted-trade-proof');
+  });
+
+  test('BZE-349: Saves and reloads a lawful November trade at 15 standard players', async ({ page }, testInfo) => {
+    test.setTimeout(180000);
+    const { worldId } = await executePersistedReviewTradeProof(page, testInfo, { standardCount: 15 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Roster');
+    await expect(page.getByAltText(REVIEW_TRADE_BOS_OUTGOING_PLAYER.name)).toBeVisible();
+    await expect(page.getByAltText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)).toHaveCount(0);
+  });
+
+  test('BZE-349: Blocks a November trade with 16 standard players without writes', async ({ page }, testInfo) => {
+    test.setTimeout(180000);
+    await executePersistedReviewTradeProof(page, testInfo, { standardCount: 16 });
   });
 
   test('D-MQ-003B: An in-progress trade draft survives leaving the Trade Machine and returning (W9)', async ({

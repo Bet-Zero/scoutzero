@@ -389,6 +389,7 @@ export function runTradePostStateLegalityStage({
     worldId,
     worldLineage,
     year,
+    asOfDate,
     beforeTeamsByCode,
     afterTeamsByCode,
     beforeTotalsByTeam,

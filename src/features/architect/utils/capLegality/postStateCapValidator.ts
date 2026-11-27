@@ -27,7 +27,11 @@ import {
 } from '@/features/architect/utils/capLegalityValidation';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { evaluateRosterCountsAgainstLimits } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
+import {
+  evaluateRosterCountsAgainstLimits,
+  isCurrentRegularSeasonRosterDate,
+} from '@/features/architect/utils/tradeMachine/rules/validateRoster';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { validationFlags } from '@/config/validationFlags';
 import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
@@ -63,6 +67,7 @@ export type PostStateCapValidationInput = {
   worldLineage?: readonly string[];
   year?: number;
   toYear?: number;
+  asOfDate?: string | null;
   beforeTeamsByCode?: Record<string, AnyRecord>;
   afterTeamsByCode?: Record<string, AnyRecord>;
   beforeTotalsByTeam?: Record<string, AnyRecord>;
@@ -317,9 +322,7 @@ function countFinalStateRosterFromPlayers(players: AnyRecord[]) {
   let twoWayCount = 0;
 
   for (const player of players) {
-    const contract = asRecord(player.contract);
-    const contractType = String(contract?.contractType || '').toLowerCase();
-    if (contractType === 'two-way') {
+    if (isTwoWayTradePlayer(player)) {
       twoWayCount++;
     } else {
       standardCount++;
@@ -345,11 +348,13 @@ function countFinalStateRosterFromPlayers(players: AnyRecord[]) {
 function runFinalStateRosterRecheck({
   teamCode,
   players,
+  enforceStandardMaximum,
   violations,
   warnings,
 }: {
   teamCode: string;
   players: AnyRecord[];
+  enforceStandardMaximum: boolean;
   violations: PostStateCapValidationIssue[];
   warnings: PostStateCapValidationIssue[];
 }) {
@@ -360,21 +365,20 @@ function runFinalStateRosterRecheck({
     twoWayCount
   );
 
-  // Route by enforcement level so the post-state gate matches the Trade
-  // Machine: 'error' blocks (violations), 'warn' is advisory (warnings), 'off'
-  // is skipped. Standard roster size (14–15) is currently advisory; two-way
-  // limit stays blocking. Keeps both gates consistent — a warned trade that
-  // passes projection also persists instead of failing at commit.
+  // Preview and Apply both use this recheck of the final team. A shortage
+  // can depend on the dated grace clock. The ordinary standard-player ceiling
+  // in the current Regular Season is a separate decision.
   const targetFor = (
     level: (typeof validationFlags)['rosterEnforcement']
   ): PostStateCapValidationIssue[] | null =>
     level === 'error' ? violations : level === 'warn' ? warnings : null;
 
   const standardTarget = targetFor(validationFlags.rosterEnforcement);
+  const maximumTarget = enforceStandardMaximum ? violations : standardTarget;
   const twoWayTarget = targetFor(validationFlags.twoWayRoster);
 
-  if (standardTarget && evaluation.isAboveMaximumStandard) {
-    standardTarget.push({
+  if (maximumTarget && evaluation.isAboveMaximumStandard) {
+    maximumTarget.push({
       code: 'ROSTER_MAX_EXCEEDED',
       teamCode,
       path: `teams.${teamCode}.players`,
@@ -516,6 +520,7 @@ function runMirroredFinalStateLegalityRechecks({
   rulesContext,
   hasPlayersData,
   players,
+  enforceStandardMaximum,
   violations,
   warnings,
   expectedYear,
@@ -529,6 +534,7 @@ function runMirroredFinalStateLegalityRechecks({
   rulesContext: AnyRecord;
   hasPlayersData: boolean;
   players: AnyRecord[];
+  enforceStandardMaximum: boolean;
   violations: PostStateCapValidationIssue[];
   warnings: PostStateCapValidationIssue[];
   expectedYear: number | null;
@@ -559,6 +565,7 @@ function runMirroredFinalStateLegalityRechecks({
   runFinalStateRosterRecheck({
     teamCode,
     players,
+    enforceStandardMaximum,
     violations,
     warnings,
   });
@@ -806,6 +813,10 @@ export function validatePostStateCapLegality(
   }
 
   const minimumTeamSalary = toFiniteNumber(rulesContext.minimumTeamSalary);
+  const enforceStandardMaximum =
+    input.mutationType === 'executeTrade' &&
+    input.worldId !== 'preview-world' &&
+    isCurrentRegularSeasonRosterDate(input.asOfDate);
 
   for (const teamCode of teamCodes) {
     const beforeTotals = asRecord(beforeTotalsByTeam[teamCode]);
@@ -848,6 +859,7 @@ export function validatePostStateCapLegality(
       rulesContext,
       hasPlayersData,
       players,
+      enforceStandardMaximum,
       violations,
       warnings,
       expectedYear,

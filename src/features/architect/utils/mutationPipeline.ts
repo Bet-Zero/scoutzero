@@ -44,6 +44,7 @@
  * - renounceRights
  */
 
+import { isCurrentRegularSeasonRosterDate } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 import { db } from '@/firebaseConfig';
 import { conditionalRightSuffix } from '@/features/architect/utils/draftReview/conditionalProgram';
 import { createDraftReviewCommitGate } from '@/features/architect/utils/draftReview/commitGate';
@@ -429,6 +430,15 @@ export async function applyWorldMutation({
           : null,
       worldAsOfDate,
     });
+    if (
+      mutationType === 'executeTrade' &&
+      isCurrentRegularSeasonRosterDate(worldAsOfDate) &&
+      asOfDate !== worldAsOfDate
+    ) {
+      return buildMutationFailureResult(
+        'Update the trade to use the saved world’s date before applying it.'
+      );
+    }
     if (mutationType === 'renounceRights' && dateDefaulted) {
       return buildMutationFailureResult(
         'Renunciation requires an explicit governed world date; no runtime-clock fallback is permitted.'
