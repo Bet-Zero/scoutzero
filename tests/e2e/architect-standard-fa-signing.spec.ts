@@ -779,9 +779,10 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
 
   for (const { method, date, salary, display } of [
     { method: 'Minimum', date: '2026-11-14', salary: 1_162_682, display: '$1,162,682' },
-    { method: 'Room MLE', date: '2027-01-11', salary: 7_954_022, display: '$7,954,022' },
+    { method: 'Room MLE', date: '2027-01-11', salary: 8_000_000, display: '$8,000,000' },
+    { method: 'Room MLE', date: '2027-02-12', salary: 6_482_758, display: '$6,482,758' },
   ]) {
-    test(`BZE-351: ${method} uses dated proration, saves, and reloads`, async ({ page }, testInfo) => {
+    test(`BZE-351: ${method} on ${date} uses its dated allowance, saves, and reloads`, async ({ page }, testInfo) => {
       const worldId = await ensureWorldSelected(page, date);
       const teamReference = getReviewAdminDb().doc(`architect_worlds/${worldId}/teams/${TEAM_CODE}`);
       await teamReference.update({
@@ -821,9 +822,10 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
       await firstYearSalary.scrollIntoViewIfNeeded();
       await page.screenshot({ path: testInfo.outputPath('prorated-signing-phone.png') });
       await page.setViewportSize({ width: 1280, height: 720 });
-      // Contract events must be recorded after execution in this January scenario.
+      // Future test scenarios record contract events after the scenario execution.
       if (method === 'Room MLE') {
-        await page.clock.setFixedTime(new Date('2027-01-11T20:00:00Z'));
+        await expect(modal.getByText(/Trade deadline assumption 2027-02-11/)).toBeVisible();
+        await page.clock.setFixedTime(new Date(`${date}T21:00:00Z`));
       }
       await confirm.click();
       await expect(page.getByTestId('cockpit-last-receipt')).toContainText(/Free agent signed/i);

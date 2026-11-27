@@ -439,9 +439,9 @@ describe('governed ordinary signing authority', () => {
     ).toMatchObject({ salary: amount, capHit: amount });
   });
 
-  it('applies the ordinary January exception reduction and retains its original basis', () => {
-    // CBA2-C13.3: $8m unused on Jan 10, 174 days, one complete day
-    // of reduction on Jan 11. A $7m signing fits under $7,954,022.
+  it('preserves the exception through the deadline and applies the retained basis afterward', () => {
+    // CBA2-C13.5 protects January use. On February 12, CBA2-C13.3
+    // applies 33 days of reduction: $8m - ($8m × 33 / 174).
     const asOfDate = '2027-01-11';
     const targetTeam = governedTeam({
       exceptions: {
@@ -455,28 +455,44 @@ describe('governed ordinary signing authority', () => {
       signedUsing: 'Full MLE',
       salariesByYear: [{ season: '2026-27', salary, capHit: salary }],
     });
+    for (const protectedDate of [asOfDate, '2027-02-11T15:00:00-05:00']) {
+      expect(resolveGovernedSigningAuthority({
+        team: targetTeam,
+        contract: makeOffer(8_000_000),
+        mechanism: 'FULL_MLE',
+        worldDate: protectedDate,
+        salaryCapYear: 2027,
+      }).status).toBe('complete');
+    }
+    expect(resolveGovernedSigningAuthority({
+      team: targetTeam,
+      contract: makeOffer(8_000_000),
+      mechanism: 'FULL_MLE',
+      worldDate: '2027-02-11T15:00:01-05:00',
+      salaryCapYear: 2027,
+    }).status).toBe('blocked');
     const tooLarge = resolveGovernedSigningAuthority({
       team: targetTeam,
-      contract: makeOffer(7_954_023),
+      contract: makeOffer(6_482_759),
       mechanism: 'FULL_MLE',
-      worldDate: asOfDate,
+      worldDate: '2027-02-12',
       salaryCapYear: 2027,
     });
     expect(tooLarge).toMatchObject({
       status: 'blocked',
-      reasons: expect.arrayContaining([expect.stringContaining('$7,954,022')]),
+      reasons: expect.arrayContaining([expect.stringContaining('$6,482,758')]),
     });
     const first = computeSigning({
       targetTeam,
-      signingContract: makeOffer(7_000_000),
+      signingContract: makeOffer(5_000_000),
       asOfDate,
       recordedAt: '2027-01-11T16:00:00-05:00',
     });
     expect(first.success, String(first.error)).toBe(true);
     const after = first.teamUpdates?.[0]?.team;
     expect(after?.exceptions?.mle).toMatchObject({
-      usedAmount: 7_000_000,
-      remainingAmount: 1_000_000,
+      usedAmount: 5_000_000,
+      remainingAmount: 3_000_000,
       january10Proration: { salaryCapYear: 2027, unusedAmount: 8_000_000 },
     });
     if (!after) throw new Error('Expected the saved team result.');
@@ -485,18 +501,17 @@ describe('governed ordinary signing authority', () => {
       salaryCapYear: 2027,
       unusedAmount: 8_000_000,
     });
-    // Jan 12 has two complete days. Retaining the original $8m basis avoids
-    // reducing from the $1m balance or subtracting the prior day twice.
+    // The $8m opening basis still controls the reduction after the $5m use.
     const next = resolveGovernedSigningAuthority({
       team: { ...after, exceptions: dashboard?.exceptions },
-      contract: makeOffer(910_000),
+      contract: makeOffer(1_482_759),
       mechanism: 'FULL_MLE',
-      worldDate: '2027-01-12',
+      worldDate: '2027-02-12',
       salaryCapYear: 2027,
     });
     expect(next).toMatchObject({
       status: 'blocked',
-      reasons: expect.arrayContaining([expect.stringContaining('$908,045')]),
+      reasons: expect.arrayContaining([expect.stringContaining('$1,482,758')]),
     });
   });
 
@@ -602,7 +617,7 @@ describe('governed ordinary signing authority', () => {
       team: targetTeam,
       contract: contract(),
       mechanism: 'FULL_MLE',
-      worldDate: '2027-01-11',
+      worldDate: '2027-02-12',
       salaryCapYear: 2027,
     });
     expect(resolved).toMatchObject({

@@ -20,6 +20,7 @@ type SigningGuardrailsLike = {
   maxFirstYear?: number | null;
   raisePct?: number | null;
   maxYears?: number | null;
+  tradeDeadlineDate?: string;
 };
 
 type ContractDetailsFormProps = {
@@ -351,6 +352,11 @@ export const ContractDetailsForm = ({
                 {Math.round((signingGuardrails.raisePct || 0) * 100)}% • Max{' '}
                 {signingGuardrails.maxYears || '—'} yrs
               </span>
+              {signingGuardrails.tradeDeadlineDate && (
+                <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+                  Trade deadline assumption {signingGuardrails.tradeDeadlineDate}
+                </span>
+              )}
               {playerRulesProfile?.restrictedFreeAgency
                 ?.qualifyingOfferAmount ? (
                 <span className="px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-100">

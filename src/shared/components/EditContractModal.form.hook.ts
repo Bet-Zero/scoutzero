@@ -159,6 +159,7 @@ export const useEditContractModalForm = ({
           exception.remaining
         ),
         maxYears: 1,
+        tradeDeadlineDate: exception.tradeDeadlineDate,
       };
     }
     if (minimumYearsOfService === null) return guardrails;
