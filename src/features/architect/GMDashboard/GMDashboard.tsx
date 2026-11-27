@@ -1124,6 +1124,7 @@ export const GMDashboard = () => {
     freeAgents,
     currentYear,
     worldAsOfDate,
+    teamCapSheet: modalTeamCapSheet,
     actionOwner: freeAgencyActionOwner,
     playersMap,
     outgoingOfferSheets: teamCapSheet?.offerSheets || [],

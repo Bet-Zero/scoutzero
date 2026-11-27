@@ -1,3 +1,10 @@
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
+import { resolveOrdinaryExceptionSigningProration } from '@/features/architect/utils/signings/governedSigningAuthority';
+import {
+  minimumSigningSeasonDays,
+  prorateSigningMinimum,
+} from '@/features/architect/utils/signings/minimumSigningProration';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
@@ -119,14 +126,66 @@ export const useEditContractModalForm = ({
     return currentSeasonSalary ? Math.round(currentSeasonSalary * 1.05) : null;
   }, [CURRENT_YEAR, player]);
 
+  const ordinarySigningDate =
+    selectedException !== 'None' && !isOfferSheet && selectedAction !== 'signAndTrade'
+      ? asOfDate
+      : null;
+  const ordinaryExceptionTeam =
+    ordinarySigningDate && selectedException !== 'Minimum' ? teamCapSheet : null;
+  const minimumYearsOfService =
+    ordinarySigningDate && selectedException === 'Minimum'
+      ? getYearsOfService(player)
+      : null;
+
   const signingGuardrails = useMemo(() => {
     if (!isSigningAction) return null;
-    return buildSigningGuardrails(
+    const guardrails = buildSigningGuardrails(
       playerRulesProfile,
       capSettings ?? undefined,
       selectedException
     );
-  }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
+    if (!ordinarySigningDate) return guardrails;
+    const exception = resolveOrdinaryExceptionSigningProration(
+      ordinaryExceptionTeam,
+      selectedException,
+      ordinarySigningDate,
+      ACTION_YEAR
+    );
+    if (exception && 'remaining' in exception) {
+      return {
+        ...guardrails,
+        maxFirstYear: Math.min(
+          guardrails.maxFirstYear ?? Infinity,
+          exception.remaining
+        ),
+        maxYears: 1,
+      };
+    }
+    if (minimumYearsOfService === null) return guardrails;
+    const days = minimumSigningSeasonDays(ordinarySigningDate, ACTION_YEAR);
+    if (!days) return guardrails;
+    const minimum = prorateSigningMinimum(
+      getCapRulesForYear(ACTION_YEAR).salaries.getMinimumForYOS(
+        minimumYearsOfService
+      ),
+      days
+    );
+    return {
+      ...guardrails,
+      minFirstYear: Math.max(minimum, guardrails.qoAmount),
+      maxFirstYear: minimum || null,
+      maxYears: days.inRegularSeason ? 1 : guardrails.maxYears,
+    };
+  }, [
+    isSigningAction,
+    playerRulesProfile,
+    capSettings,
+    selectedException,
+    ordinarySigningDate,
+    ACTION_YEAR,
+    ordinaryExceptionTeam,
+    minimumYearsOfService,
+  ]);
 
   const availableSigningExceptions = useMemo<SigningExceptionOption[]>(() => {
     return SIGNING_EXCEPTION_OPTIONS.filter((option) => {

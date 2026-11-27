@@ -9,6 +9,10 @@
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
+import {
+  minimumSigningSeasonDays,
+  prorateSigningMinimum,
+} from '@/features/architect/utils/signings/minimumSigningProration';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import {
   applyWorldMutation,
@@ -834,9 +838,11 @@ export function useSigningExecution({
       let minimumCharge: number | null = null;
       if (minimumReimbursementApplies) {
         try {
-          minimumCharge = getCapRulesForYear(
-            actionSeasonContext.actionYear
-          ).salaries.getMinimumForYOS(2);
+          const { actionYear } = actionSeasonContext;
+          minimumCharge = prorateSigningMinimum(
+            getCapRulesForYear(actionYear).salaries.getMinimumForYOS(2),
+            minimumSigningSeasonDays(worldAsOfDate, actionYear)
+          );
         } catch {
           return {
             actionSeasonContext,
@@ -890,7 +896,7 @@ export function useSigningExecution({
         },
       };
     },
-    [currentYear, teamCode]
+    [currentYear, teamCode, worldAsOfDate]
   );
 
   const prepareStandardSigningMutationPayload = useCallback(

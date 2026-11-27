@@ -1,6 +1,12 @@
+import { minimumSigningSeasonDays } from './minimumSigningProration';
+import {
+  getCanonicalExceptionAvailability,
+  getCanonicalExceptionKeyForSigningMechanism,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 import { normalizeSalaryBookAsOfDate } from '@/features/architect/utils/capTotals';
 import {
+  governingCalendarDate,
   isDateOnly,
   isDateOnlyWithinSalaryCapYear,
   isWithinSalaryCapYear,
@@ -31,6 +37,7 @@ const METHOD_CANON_LEAVES: Readonly<Record<string, readonly string[]>> =
       'CBA2-C13.6',
       'CBA2-C13.21',
       'CBA2-C13.22',
+      'CBA2-C13.23',
     ]),
     FULL_MLE: Object.freeze([
       'CBA2-C13.8',
@@ -75,6 +82,7 @@ export type GovernedSigningAuthority = Readonly<{
   firstYearSalary: number;
   firstYearCapHit: number;
   exceptionCharge: number;
+  january10UnusedAmount?: number;
   canonLeafIds: readonly string[];
   seasonInputManifest: NonNullable<
     ReturnType<typeof resolveGovernedSeasonEnvelope>['inputManifest']
@@ -101,19 +109,62 @@ export function ordinarySigningProrationUnavailable(
   mechanism: string
 ): string | null {
   if (
-    date >= `${salaryCapYear}-01-10` &&
-    ['FULL_MLE', 'TPMLE', 'ROOM_MLE', 'BAE'].includes(mechanism)
+    mechanism === 'MINIMUM' &&
+    date >= `${salaryCapYear - 1}-10-01` &&
+    !minimumSigningSeasonDays(date, salaryCapYear)
   ) {
-    return (
-      'This post-January 10 exception signing needs the January 10 unused amount and exact daily-proration record.'
-    );
-  }
-  if (date >= `${salaryCapYear - 1}-10-01` && mechanism === 'MINIMUM') {
     return (
       'This Regular Season Minimum signing needs the exact Regular Season-day proration record.'
     );
   }
   return null;
+}
+
+/**
+ * Ordinary signing uses the dated reduced allowance. The existing nominal
+ * balance stays available to the separately governed trade/Offer Sheet paths.
+ */
+export function resolveOrdinaryExceptionSigningProration(
+  team: Parameters<typeof getCanonicalExceptionAvailability>[0],
+  mechanism: string,
+  worldDate: string | null | undefined,
+  salaryCapYear: number
+): { remaining: number; january10UnusedAmount: number } | { reason: string } | null {
+  const key = getCanonicalExceptionKeyForSigningMechanism(mechanism);
+  const date = governingCalendarDate(worldDate);
+  const cutoff = `${salaryCapYear}-01-10`;
+  if (!key || !date || date < cutoff) return null;
+  const days = minimumSigningSeasonDays(date, salaryCapYear);
+  const balance = getCanonicalExceptionAvailability(team, key);
+  if (!days || !balance.entry || !balance.enabled) {
+    return { reason: 'The calendar or available signing exception is missing for this date.' };
+  }
+  const lastUse = governingCalendarDate(balance.entry.lastUsedAt);
+  const retained =
+    balance.entry.january10Proration?.salaryCapYear === salaryCapYear
+      ? balance.entry.january10Proration.unusedAmount
+      : undefined;
+  const january10UnusedAmount = retained ?? (
+    balance.usedAmount === 0 || (lastUse && lastUse <= cutoff)
+      ? balance.remainingAmount
+      : null
+  );
+  if (
+    (lastUse && lastUse > date) ||
+    january10UnusedAmount === null ||
+    !Number.isSafeInteger(january10UnusedAmount) ||
+    january10UnusedAmount < balance.remainingAmount ||
+    january10UnusedAmount > balance.totalAmount
+  ) {
+    return { reason: 'This signing needs the unused January 10 exception balance.' };
+  }
+
+  // January 11 completes the first reduction day under CBA2-C13.3.
+  const elapsed = (Date.parse(date) - Date.parse(cutoff)) / 86_400_000;
+  return {
+    remaining: Math.max(0, Math.floor(balance.remainingAmount - january10UnusedAmount * elapsed / days.total)),
+    january10UnusedAmount,
+  };
 }
 
 export function resolveGovernedSigningAuthority({
@@ -130,7 +181,7 @@ export function resolveGovernedSigningAuthority({
   salaryCapYear: number;
 }):
   | { status: 'complete'; authority: GovernedSigningAuthority }
-  | { status: 'needs-input'; reasons: readonly string[] } {
+  | { status: 'needs-input' | 'blocked'; reasons: readonly string[] } {
   const reasons: string[] = [];
   const exactDate =
     typeof worldDate === 'string' &&
@@ -204,8 +255,31 @@ export function resolveGovernedSigningAuthority({
       'This ordinary signing is inside the Moratorium and does not identify an enumerated signing branch.'
     );
   }
-  const unavailableRoute = ordinarySigningProrationUnavailable(date, salaryCapYear, mechanism);
+  const unavailableRoute = ordinarySigningProrationUnavailable(
+    date,
+    salaryCapYear,
+    mechanism
+  );
   if (unavailableRoute) reasons.push(unavailableRoute);
+  const exceptionProration = resolveOrdinaryExceptionSigningProration(
+    team,
+    mechanism,
+    exactDate,
+    salaryCapYear
+  );
+  if (exceptionProration && 'reason' in exceptionProration) {
+    reasons.push(exceptionProration.reason);
+  }
+  if (
+    years > 1 &&
+    ((mechanism === 'MINIMUM' &&
+      minimumSigningSeasonDays(exactDate, salaryCapYear)?.inRegularSeason) ||
+      (exceptionProration && 'remaining' in exceptionProration))
+  ) {
+    reasons.push(
+      'This prorated signing with future years needs governed Contract terms for those seasons.'
+    );
+  }
 
   const envelope = effectiveAt
     ? resolveGovernedSeasonEnvelope({
@@ -231,6 +305,18 @@ export function resolveGovernedSigningAuthority({
       reasons: Object.freeze([...new Set(reasons)]),
     };
   }
+  if (
+    exceptionProration &&
+    'remaining' in exceptionProration &&
+    firstYearSalary > exceptionProration.remaining
+  ) {
+    return {
+      status: 'blocked',
+      reasons: [
+        `The first-year salary exceeds the dated signing exception balance of $${exceptionProration.remaining.toLocaleString('en-US')}.`,
+      ],
+    };
+  }
   return {
     status: 'complete',
     authority: Object.freeze({
@@ -241,9 +327,13 @@ export function resolveGovernedSigningAuthority({
       firstYearSalary,
       firstYearCapHit,
       exceptionCharge: firstYearSalary,
+      ...(exceptionProration && 'january10UnusedAmount' in exceptionProration
+        ? { january10UnusedAmount: exceptionProration.january10UnusedAmount }
+        : {}),
       canonLeafIds: Object.freeze([
         ...GOVERNED_SIGNING_BASE_CANON_LEAVES,
         ...(METHOD_CANON_LEAVES[mechanism] || []),
+        ...(exceptionProration ? ['CBA2-C13.3'] : []),
       ]),
       seasonInputManifest: envelope!.inputManifest!,
     }),

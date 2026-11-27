@@ -86,6 +86,7 @@ export type ArchitectGeneralMutationDashboardReloadExceptionEntry = {
   notes?: string | null;
   seasonKey?: string | null;
   lastUsedAt?: string | null;
+  january10Proration?: { salaryCapYear: number; unusedAmount: number };
 };
 export type ArchitectGeneralMutationDashboardReloadTradeException = {
   id: string;

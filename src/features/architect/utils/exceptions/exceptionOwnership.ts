@@ -32,6 +32,7 @@ export type CanonicalNonTpeExceptionState = {
   createdOn?: string | null;
   expiresOn?: string | null;
   lastUsedAt?: string | null;
+  january10Proration?: { salaryCapYear: number; unusedAmount: number };
   /**
    * Season end-year in which this exception was last consumed. Used to enforce
    * the Bi-Annual Exception (BAE) "every other season" restriction across
