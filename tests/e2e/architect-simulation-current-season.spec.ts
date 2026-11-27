@@ -146,6 +146,107 @@ async function electEqualSalaries(
   }
 }
 
+for (const scenario of [
+  {
+    name: 'player swap',
+    home: 'CHI', visitor: 'WAS', slug: 'wizards',
+    homeName: 'Chicago Bulls', visitorName: 'Washington Wizards',
+    players: ['TRE JONES', 'TRE MANN'],
+    playerIds: ['tre_jones', 'tre_mann'],
+    incoming: 8_000_000,
+  },
+  {
+    name: 'players and pick with separate Minimum',
+    home: 'HOU', visitor: 'MIL', slug: 'bucks',
+    homeName: 'Houston Rockets', visitorName: 'Milwaukee Bucks',
+    players: ['REED SHEPPARD', 'AJ GREEN'],
+    playerIds: ['reed_sheppard', 'aj_green'],
+    incoming: 10_044_644,
+    pickId: 'ent:HOU:2033:1:own:7b093a9d',
+  },
+]) {
+  test(`BZE-352 ${scenario.name} derives its money, saves, and reloads`, async ({ page }, testInfo) => {
+    const { home, visitor, slug, homeName, visitorName, players, pickId } = scenario;
+    await page.goto(`/gm/${home}?season=2027`);
+    await expect.poll(() => readReviewUserId(page)).not.toBe('');
+    const uid = await readReviewUserId(page);
+    await page.getByTestId('cockpit-world-menu-trigger').click();
+    await page.getByTitle('Create new world', { exact: true }).click();
+    await page.getByLabel('World Name', { exact: true }).fill('Saved trade money');
+    page.once('dialog', (confirmation) => confirmation.accept());
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(page.getByTestId('cockpit-activity-rail-identity')).toContainText('SIMULATION');
+    const worldId = await page.evaluate(
+      (uid) => localStorage.getItem(`architect.activeWorldId.${uid}`)!, uid
+    );
+    const dialog = await openTrade(page, visitor, slug, home);
+    await player(page, dialog, home, players[0], visitorName);
+    await player(page, dialog, visitor, players[1], homeName);
+    if (pickId) {
+      await player(page, dialog, visitor, 'JERICHO SIMS', homeName);
+      await pick(page, dialog, home, pickId, visitorName);
+    }
+    const homeCard = dialog.getByTestId(`trade-team-card-${home}`);
+    for (const [code, path] of [
+      [home, 'STANDARD_TPE'],
+      [visitor, pickId ? 'AGGREGATED_STANDARD_TPE' : 'STANDARD_TPE'],
+    ]) {
+      const card = dialog.getByTestId(`trade-team-card-${code}`);
+      await card.getByLabel('Elected path', { exact: true }).selectOption(path);
+      await expect(card.getByLabel('Post-assignment Apron Team Salary', { exact: true })).toHaveValue('');
+      await expect(card.locator('input[aria-label$="exact pre-trade Salary"]').first()).toHaveValue('');
+    }
+    const validate = dialog.getByRole('button', { name: /^Validate Trade$/i });
+    const applyButton = dialog.getByRole('button', { name: /^Apply Trade$/i });
+    if (pickId) {
+      await validate.click();
+      await expect(applyButton).toBeDisabled();
+      expect(await getWorldEventDocuments(worldId)).toHaveLength(0);
+      await homeCard.getByRole('checkbox', { name: /^Acquire Jericho Sims with Minimum Exception$/i }).check();
+    }
+    await validate.click();
+    await expect(applyButton).toBeEnabled({ timeout: 60000 });
+    await page.screenshot({ path: testInfo.outputPath('saved-trade-desktop.png') });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await homeCard.getByLabel('Elected path', { exact: true }).scrollIntoViewIfNeeded();
+    await expect(homeCard.getByText(/Leave amounts blank/)).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('saved-trade-phone.png') });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    if (!pickId) {
+      const stagedPlayer = homeCard.locator('span').filter({
+        hasText: new RegExp(`^${players[0]}.*✕$`, 'i'),
+      });
+      await stagedPlayer.getByRole('button', { name: '✕', exact: true }).click();
+      await expect(applyButton).toBeDisabled();
+      expect(await getWorldEventDocuments(worldId)).toHaveLength(0);
+      await player(page, dialog, home, players[0], visitorName);
+    }
+    await apply(dialog, worldId, 1);
+    const [event] = await getWorldEventDocuments(worldId);
+    const persistedPath = event.metadata.salaryMatchingPaths.find(
+      (entry: { teamCode: string }) => entry.teamCode === home
+    ).evaluation;
+    expect(persistedPath).toMatchObject({
+      actualIncoming: scenario.incoming,
+      postAssignmentApronTeamSalary: expect.any(Number),
+    });
+    const homeTeam = (await getWorldTeamDocument(worldId, home))!;
+    const visitorTeam = (await getWorldTeamDocument(worldId, visitor))!;
+    expect(homeTeam.roster).toContain(scenario.playerIds[1]);
+    expect(visitorTeam.roster).toContain(scenario.playerIds[0]);
+    if (pickId) {
+      expect(homeTeam.roster).toContain('jericho_sims');
+      expect(visitorTeam.entitlementIds).toContain(pickId);
+      expect(persistedPath.postAssignmentApronTeamSalary).toBe(203_970_470);
+    }
+    await page.reload();
+    await expect(page.getByTestId('cockpit-activity-rail-identity')).toContainText('SIMULATION');
+    expect(await getWorldEventDocuments(worldId)).toEqual([event]);
+    expect(await getWorldTeamDocument(worldId, home)).toEqual(homeTeam);
+    expect(await getWorldTeamDocument(worldId, visitor)).toEqual(visitorTeam);
+  });
+}
+
 test('current GM world: create, assumptions, pick and player-plus-pick trades, receipts, reload, copy and historical preservation', async ({
   page,
 }) => {

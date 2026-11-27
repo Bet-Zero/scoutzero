@@ -1151,6 +1151,97 @@ describe('governed salary path lifecycle integration', () => {
     },
   };
 
+  it('derives exact salary and apron inputs only from the dated saved trade', () => {
+    const savedContext = {
+      ...context,
+      yearKey: 2027,
+      worldId: 'saved-world',
+      containingTeamCode: 'BOS',
+      realDraftReviewAsOfDate: '2026-11-14',
+      tradeDate: '2026-11-14',
+    };
+    const basis = {
+      authorityVersion: 1,
+      status: 'ready',
+      worldId: savedContext.worldId,
+      teamId: 'BOS',
+      playerId: 'outgoing',
+      contractId: 'ordinary-outgoing-contract',
+      asOfDate: savedContext.tradeDate,
+      salaryCapYear: 2027,
+      method: 'ordinary-protection',
+      currentSalary: 10_000_000,
+      outgoingSalary: 10_000_000,
+      incomingSalary: 10_000_000,
+      poisonPillIncomingSalary: null,
+      canonLeafIds: ['CBA2-C14.1'],
+      reasons: [],
+      proof: {
+        ledgerId: 'ordinary-outgoing-ledger',
+        ledgerVersion: 1,
+        contractVersion: 1,
+        stateDigest: 'fnv1a64:0123456789abcdef',
+        calendarRecordId: 'calendar',
+        calendarRecordVersion: 1,
+        calendarSourceRecordId: 'source',
+        calendarSourceRecordVersion: 1,
+      },
+    };
+    const team = {
+      salaryIn: 10_200_000,
+      salaryOut: 10_000_000,
+      teamTotalSalary: 180_000_000,
+      projectedSalary: 180_200_000,
+      outgoingPlayers: [{ id: 'outgoing', governedTradeSalaryBasis: basis }],
+      incomingPlayers: [{ id: 'incoming', matchIncoming: 10_200_000 }],
+      salaryMatchingElection: {
+        ...election('STANDARD_TPE'),
+        postAssignmentApronTeamSalary: null,
+      },
+    };
+
+    expect(validateSalaryMatching(team, savedContext)).toMatchObject({
+      passed: true,
+      allowableIncoming: 10_250_000,
+      details: {
+        pathEvaluation: {
+          postAssignmentApronTeamSalary: 180_200_000,
+          election: { tradedPlayerPreTradeSalaries: { outgoing: 10_000_000 } },
+        },
+      },
+    });
+    const stale = {
+      ...team,
+      outgoingPlayers: [{ id: 'outgoing', governedTradeSalaryBasis: { ...basis, asOfDate: '2026-11-13' } }],
+    };
+    expect(validateSalaryMatching(stale, savedContext)).toMatchObject({
+      passed: false,
+      details: { pathEvaluation: { missingInputs: ['tradedPlayerPreTradeSalaries.outgoing'] } },
+    });
+    const wrongAmount = {
+      ...team,
+      salaryMatchingElection: {
+        ...team.salaryMatchingElection,
+        tradedPlayerPreTradeSalaries: { outgoing: 12_000_000 },
+      },
+    };
+    expect(validateSalaryMatching(wrongAmount, savedContext)).toMatchObject({
+      passed: false,
+      violations: ['A supplied outgoing Salary conflicts with the saved Contract ledger.'],
+    });
+    expect(validateSalaryMatching({
+      ...team,
+      salaryMatchingElection: {
+        ...team.salaryMatchingElection,
+        postAssignmentApronTeamSalary: 180_000_000,
+      },
+    }, savedContext)).toMatchObject({
+      passed: false,
+      violations: ['The supplied post-trade Apron Team Salary conflicts with the saved world projection.'],
+    });
+    expect(validateSalaryMatching(team, { ...savedContext, realDraftReviewAsOfDate: null }).passed).toBe(false);
+  });
+
   it('skips path election only when the participant has no matching salary', () => {
     const result = validateSalaryMatching(
       {

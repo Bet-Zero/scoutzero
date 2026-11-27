@@ -20,6 +20,7 @@ type TradeSalaryPathElectionProps = {
   incomingPlayers?: ElectionPlayer[];
   onChange: (election: TradeSalaryMatchingElection | null) => void;
   compact?: boolean;
+  calculatesSavedAmounts?: boolean;
 };
 
 const PATH_LABELS: Record<TradeSalaryMatchingPath, string> = {
@@ -46,11 +47,13 @@ const CurrencyInput = ({
   onChange,
   ariaLabel,
   className,
+  placeholder = '$0',
 }: {
   value: number | null | undefined;
   onChange: (value: number | null) => void;
   ariaLabel: string;
   className: string;
+  placeholder?: string;
 }) => {
   const [focused, setFocused] = useState(false);
   const [draft, setDraft] = useState('');
@@ -60,7 +63,7 @@ const CurrencyInput = ({
       type="text"
       inputMode="decimal"
       className={className}
-      placeholder="$0"
+      placeholder={placeholder}
       value={focused ? draft : value == null ? '' : formatCurrency(value)}
       onFocus={() => {
         setDraft(value == null ? '' : String(value));
@@ -84,6 +87,7 @@ export const TradeSalaryPathElection = ({
   incomingPlayers = [],
   onChange,
   compact = false,
+  calculatesSavedAmounts = false,
 }: TradeSalaryPathElectionProps) => (
   <section
     className="rounded-md border border-cockpit-info/30 bg-cockpit-info/10 p-3 space-y-3"
@@ -92,8 +96,9 @@ export const TradeSalaryPathElection = ({
     <div>
       <div className="text-xs font-semibold text-cockpit-info">Salary path</div>
       <div className="text-[11px] text-cockpit-text-muted">
-        Choose how this team will match salary. Complete every required amount
-        before validation.
+        {calculatesSavedAmounts
+          ? 'Choose how this team will match salary. Leave amounts blank to use the saved world’s figures.'
+          : 'Choose how this team will match salary. Complete every required amount before validation.'}
       </div>
     </div>
 
@@ -189,6 +194,7 @@ export const TradeSalaryPathElection = ({
             ariaLabel="Post-assignment Apron Team Salary"
             className="mt-1 w-full rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1.5 font-mono text-cockpit-text-primary"
             value={election.postAssignmentApronTeamSalary ?? null}
+            placeholder={calculatesSavedAmounts ? 'Calculated on validation' : undefined}
             onChange={(value) =>
               onChange({
                 ...election,
@@ -227,6 +233,7 @@ export const TradeSalaryPathElection = ({
                     ariaLabel={`${playerName(player)} exact pre-trade Salary`}
                     className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1 font-mono text-cockpit-text-primary"
                     value={election.tradedPlayerPreTradeSalaries[id] ?? null}
+                    placeholder={calculatesSavedAmounts ? 'Saved Contract' : undefined}
                     onChange={(value) => {
                       const next = {
                         ...election.tradedPlayerPreTradeSalaries,
@@ -243,7 +250,9 @@ export const TradeSalaryPathElection = ({
               );
             })}
             <div className="text-[10px] text-cockpit-text-muted">
-              Enter the salary used for each player in this trade.
+              {calculatesSavedAmounts
+                ? 'Any amount you enter must match the saved Contract.'
+                : 'Enter the salary used for each player in this trade.'}
             </div>
           </div>
         )}

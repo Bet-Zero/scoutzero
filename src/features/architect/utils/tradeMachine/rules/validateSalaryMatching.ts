@@ -10,6 +10,8 @@
  */
 
 import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
+import { governingCalendarDate } from '@/features/architect/utils/governedSeason';
+import { isCurrentRegularSeasonRosterDate } from './validateRoster';
 import {
   formatCurrency,
   getSalaryForYear,
@@ -60,6 +62,7 @@ type FaExceptionBucketLike = {
 
 type SalaryMatchingPlayer = TradeExceptionPlayer & {
   bucketType?: unknown;
+  governedTradeSalaryBasis?: unknown;
 };
 
 type SalaryMatchingContext = TeamContext & {
@@ -69,6 +72,7 @@ type SalaryMatchingContext = TeamContext & {
   capSettings?: SalaryMatchingCapSettingsLike | null;
   capSettingsSource?: string | null;
   worldId?: string | null;
+  realDraftReviewAsOfDate?: string | null;
 };
 
 type SalaryMatchingTeamData = {
@@ -787,19 +791,77 @@ export function validateSalaryMatching(
           // Only the governed salary basis (loaded from the sender's
           // Contract ledger) can qualify a Minimum Exception acquisition.
           ...governedAcquisitionTerms(
-            (player as { governedTradeSalaryBasis?: unknown })
-              .governedTradeSalaryBasis
+            player.governedTradeSalaryBasis
           ),
         }));
 
+    const rawElection = team.salaryMatchingElection;
+    const savedDate = governingCalendarDate(context.realDraftReviewAsOfDate);
+    const calculatesSavedAmounts =
+      context.source === 'tradeMachine' &&
+      Boolean(context.worldId) &&
+      isCurrentRegularSeasonRosterDate(savedDate) &&
+      ![...incomingPlayers, ...governedOutgoingPlayers].some(
+        (player) => player.signAndTrade === true
+      );
+    let election = rawElection;
+    if (calculatesSavedAmounts && rawElection) {
+      const verifiedSalaries: Record<string, number> = {};
+      for (const player of governedOutgoingPlayers) {
+        const id = getPlayerIdentity(player);
+        const basis = GovernedTradeSalaryBasisZ.safeParse(
+          player.governedTradeSalaryBasis
+        );
+        if (
+          id &&
+          basis.success &&
+          basis.data.status === 'ready' &&
+          basis.data.worldId === context.worldId &&
+          basis.data.teamId === context.containingTeamCode &&
+          basis.data.playerId === id &&
+          basis.data.asOfDate === savedDate &&
+          basis.data.salaryCapYear === context.yearKey &&
+          basis.data.outgoingSalary != null
+        ) {
+          verifiedSalaries[id] = basis.data.outgoingSalary;
+        }
+      }
+      if (
+        Object.entries(rawElection.tradedPlayerPreTradeSalaries).some(
+          ([id, salary]) => verifiedSalaries[id] !== salary
+        )
+      ) {
+        violations.push(
+          'A supplied outgoing Salary conflicts with the saved Contract ledger.'
+        );
+      }
+      const projected = team.projectedSalary;
+      const projectedApronSalary =
+        typeof projected === 'number' && Number.isFinite(projected) && projected >= 0
+          ? projected
+          : null;
+      if (
+        rawElection.postAssignmentApronTeamSalary != null &&
+        rawElection.postAssignmentApronTeamSalary !== projectedApronSalary
+      ) {
+        violations.push(
+          'The supplied post-trade Apron Team Salary conflicts with the saved world projection.'
+        );
+      }
+      election = {
+        ...rawElection,
+        tradedPlayerPreTradeSalaries: verifiedSalaries,
+        postAssignmentApronTeamSalary: projectedApronSalary,
+      };
+    }
+
     pathEvaluation = evaluateTradeSalaryMatchingPath({
-      election: team.salaryMatchingElection,
+      election,
       outgoingPlayers: governedOutgoingPlayers.map((player) => ({
         playerId: getPlayerIdentity(player),
         playerName: player.name || player.displayName || 'Unknown player',
         aggregationFacts: GovernedTradeSalaryBasisZ.safeParse(
-          (player as { governedTradeSalaryBasis?: unknown })
-            .governedTradeSalaryBasis
+          player.governedTradeSalaryBasis
         ).data?.aggregationFacts,
       })),
       incomingMatchingPlayers: matchingIncomingPlayers,
