@@ -186,6 +186,50 @@ const minimalTotals = {
   secondApron: 190_000_000,
 };
 
+describe('current Regular Season saved-trade roster ceiling', () => {
+  it.each([
+    { standard: 15, twoWay: 3, date: '2026-11-14', expectedCode: null },
+    { standard: 16, twoWay: 0, date: '2026-11-14', expectedCode: 'ROSTER_MAX_EXCEEDED' },
+    { standard: 15, twoWay: 4, date: '2026-11-14', expectedCode: 'TWO_WAY_LIMIT_EXCEEDED' },
+    { standard: 16, twoWay: 0, date: '2026-10-19', expectedCode: null },
+    { standard: 16, twoWay: 0, date: '2026-10-20', expectedCode: 'ROSTER_MAX_EXCEEDED' },
+    { standard: 13, twoWay: 0, date: '2026-11-14', expectedCode: null },
+  ])(
+    'checks $standard standard and $twoWay Two-Way Contracts on $date',
+    async ({ standard, twoWay, date, expectedCode }) => {
+      const { validatePostStateCapLegality } = await import(
+        '@/features/architect/utils/capLegality/postStateCapValidator'
+      );
+      const players = [
+        ...Array.from({ length: standard }, (_, index) => ({ id: `std-${index}` })),
+        ...Array.from({ length: twoWay }, (_, index) => ({
+          id: `tw-${index}`,
+          contractType: 'Two-Way',
+        })),
+      ];
+      const totals = { ...minimalTotals, yearKey: 2027 };
+      const result = validatePostStateCapLegality({
+        operationId: 'saved-roster-trade',
+        mutationType: 'executeTrade',
+        worldId: 'saved-roster-world',
+        asOfDate: date,
+        year: 2027,
+        beforeTotalsByTeam: { LAL: totals },
+        afterTotalsByTeam: { LAL: totals },
+        afterTeamsByCode: { LAL: { players } },
+      });
+
+      expect(result.valid).toBe(expectedCode === null);
+      expect(result.violations.map((issue) => issue.code)).toEqual(
+        expectedCode ? [expectedCode] : []
+      );
+      if (standard === 13) {
+        expect(result.warnings.map((issue) => issue.code)).toContain('ROSTER_MIN_VIOLATED');
+      }
+    }
+  );
+});
+
 describe('postStateCapValidator.ts — uses ROSTER_LIMITS including minimum check', () => {
   it('warns (advisory) ROSTER_MAX_EXCEEDED when a team exceeds MAX_STANDARD standard contracts', async () => {
     const { validatePostStateCapLegality } = await import(
