@@ -1,6 +1,7 @@
 /** Accounts for unchanged standard and Two-Way Contracts in mixed-pick lanes.
  * This establishes consideration identity, never whole-trade legality.
  */
+import { isCurrentRegularSeasonRosterDate } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 import { isTwoWayTradePlayer } from '../tradeMachine/utils/twoWayTradeSalary';
 import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
 import {
@@ -30,6 +31,9 @@ export function simulationPlayerMovements(
     fromTeam: string;
     toTeam: string;
   }[] = [];
+  const calculatesSavedAmounts =
+    args.payload.tradeCtx?.source === 'tradeMachine' &&
+    isCurrentRegularSeasonRosterDate(args.payload.asOfDate);
   const hasPlayers = slots.some((s) => s.sends?.length);
   const currentTeam = (teamCode: unknown) =>
     state.teams?.find((entry) => entry.teamCode === teamCode)?.team as
@@ -83,7 +87,7 @@ export function simulationPlayerMovements(
       (!election.success || !supportedPath(election.data.path))
     )
       throw new Error(
-        'Each team in a mixed trade needs a supported explicit matching path and exact outgoing player salaries.'
+        'Each team in a mixed trade needs a supported explicit matching path.'
       );
     const matchingIds = (slot.sends ?? [])
       .filter(
@@ -92,8 +96,8 @@ export function simulationPlayerMovements(
       .map((player) => player.playerId ?? player.id ?? player.player_id);
     if (
       election.success &&
-      (Object.keys(election.data.tradedPlayerPreTradeSalaries).length !==
-        matchingIds.length ||
+      ((!calculatesSavedAmounts &&
+        Object.keys(election.data.tradedPlayerPreTradeSalaries).length !== matchingIds.length) ||
         Object.keys(election.data.tradedPlayerPreTradeSalaries).some(
           (id) => !matchingIds.includes(id)
         ))
@@ -224,8 +228,9 @@ export function simulationPlayerMovements(
         !twoWay &&
         (!election.success ||
           !supportedPath(election.data.path) ||
-          election.data.tradedPlayerPreTradeSalaries[id] !==
-            basis.outgoingSalary)
+          ((!calculatesSavedAmounts ||
+            election.data.tradedPlayerPreTradeSalaries[id] !== undefined) &&
+            election.data.tradedPlayerPreTradeSalaries[id] !== basis.outgoingSalary))
       )
         throw new Error(
           'Mixed trades require a supported matching path with the exact governed outgoing Salary for each player.'
