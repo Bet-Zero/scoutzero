@@ -29,6 +29,17 @@ current-season target; they do not retract completed historical work. Establish
 this state before resuming B1/B5. No production activation, package publishing,
 existing-world migration, provider outreach or purchases are authorized here.
 
+**Launch priority (owner, November 15):** ScoutZero must run without bills or
+billable exposure from other users. The [BZE-243 cost decision](https://linear.app/bzero/issue/BZE-243#comment-b5088850-e1ed-4d1e-872a-7ac28c533afa)
+supersedes the paid Firebase rollout recommendation. Keep PR #660 held; no Blaze,
+billing linkage, paid service, production deployment, activation or migration
+without explicit owner approval. Investigate only the smallest secure
+Vercel plus Firebase Spark alternative, preserving accepted rules, private
+starting-data trust and all saved worlds.
+The [November 16 decision](https://linear.app/bzero/issue/BZE-243#comment-6f031d40-12c4-4a12-96c6-7c493a31a4a9)
+confirms current personal/noncommercial use and authorizes the bounded technical
+proof only; future monetization requires revisiting Hobby eligibility.
+
 ## Standing decisions (owner, 2026-11-10)
 
 1. **Simulation standard everywhere.** NBA rules are applied exactly. Inputs are
@@ -107,25 +118,22 @@ that changes the plan.
 ## Phase 2: switch it on (owner confirms the deploy)
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
-- [ ] D2 Normal Create World uses the current 2026-27 baseline; functions and
-      rules deployed only with authorization. Both historical private packages
-      are recoverable/rebuildable; both current private packages are prepared
-      and reproduce byte-for-byte. Local ordinary Create uses those current
-      inputs. This does not authorize installation or activation in production.
-      Executor inspection found no ADC, Firebase login account/token or deploy
-      environment credential. The existing GitHub Google identities are bounded
-      data workers, not Functions deployment authority; repository secret-name
-      inspection returned HTTP 403, so other hosted credentials are unverified.
-      The connected Vercel account exposes no accessible projects; it did not
-      provide another Firebase authentication route.
-      Smallest safe path: an existing deployment-authorized maintainer uses their
-      authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
-      CLI with that existing account; then run read-only project/permission checks.
-      No replacement service account/key or broad IAM grant is needed by default.
-      Deployment, private uploads and activation still need separate authorization.
-      Production remains off.
-      Hosting stays on Vercel; Firebase supplies Functions/Firestore/private storage.
+- [ ] D2 Ordinary Create World with the current 2026-27 baseline on the
+      protected Vercel Hobby and Firebase Spark route. The November 26 review
+      records signed-in hosted creation, a saved mixed trade with reload,
+      History and pick ownership, disposable-world deletion, and replacement
+      creation and reopening. Preserve that proof and the existing owner
+      access. The stable integrated release still needs candidate validation,
+      required History indexes, Rules/runtime reconciliation and release
+      authorization. Use the
+      [protected Preview procedure](../../docs/operations/CLOUD_DEVELOPMENT.md#prepare-a-protected-owner-preview)
+      for new rollout actions. PR #660 and public activation remain held.
 - [x] D3 Existing worlds left unmigrated and still readable.
+      Verify the rollout candidate with the reproducible historical and pre-B5
+      [older-world compatibility fixtures](../../docs/operations/CLOUD_DEVELOPMENT.md#reproduce-older-world-compatibility-locally).
+      The original #659 exports and inventory are unavailable. The regenerated
+      fixtures establish compatibility for the tested formats. Leave actual hosted
+      saves untouched during verification.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
       DPE grants stay post-V1 (needs-input).

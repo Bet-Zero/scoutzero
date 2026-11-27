@@ -788,8 +788,9 @@ export function deriveArchitectWorkspaceContext({
 export function useArchitectWorkspaceContext(
   input: ArchitectWorkspaceContextInput
 ): ArchitectWorkspaceContext {
+  const team = deriveTeamContext(input);
   const savedSwapAssets = useSwapAssets(
-    input.worldId, input.teamId, input.currentYear,
+    input.worldId, team.id, input.currentYear,
     JSON.stringify(input.teamCapSheet?.entitlementIds ?? [])
   );
   return useMemo(
