@@ -9,6 +9,7 @@
  */
 
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { evaluateGuideRoster } from './guideRosterPolicy';
 import { getCatalogEntry } from './questionCatalog';
 import type {
   Stage4BlockingConstraint,
@@ -45,7 +46,8 @@ const SEVERITY_RANK: Record<Stage4Severity, number> = {
 };
 
 function detectConstraints(
-  context: ArchitectWorkspaceContext
+  context: ArchitectWorkspaceContext,
+  rosterWarnings: Stage4BlockingConstraint[]
 ): DetectedConstraint[] {
   const out: DetectedConstraint[] = [];
   const cap = context.cap;
@@ -71,21 +73,8 @@ function detectConstraints(
     }
   }
 
-  const roster = context.roster;
-  if (roster.status === 'available') {
-    if (roster.count > 17) {
-      out.push({
-        label: `Roster has ${roster.count} entries — above the 17-roster CBA limit.`,
-        severity: 'danger',
-        navigateTo: 'roster',
-      });
-    } else if (roster.count < 14) {
-      out.push({
-        label: `Roster has only ${roster.count} entries — below the 14-roster floor.`,
-        severity: 'warning',
-        navigateTo: 'roster',
-      });
-    }
+  for (const { label, severity } of rosterWarnings) {
+    out.push({ label, severity, navigateTo: 'roster' });
   }
 
   const seasons = context.seasons;
@@ -131,7 +120,8 @@ export function buildCurrentConstraintsAnswer(
   context: ArchitectWorkspaceContext
 ): Stage4GuidedAnswer {
   const entry = getCatalogEntry('current-constraints')!;
-  const detected = detectConstraints(context);
+  const roster = evaluateGuideRoster(context);
+  const detected = detectConstraints(context, roster.warnings);
 
   const blockers: Stage4BlockingConstraint[] = detected.map((c) => ({
     label: c.label,
@@ -153,9 +143,9 @@ export function buildCurrentConstraintsAnswer(
 
   if (detected.length === 0) {
     chips.push({
-      label: 'No observed constraints.',
+      label: roster.unavailableReason ? 'No other constraints observed.' : 'No observed constraints.',
       authority: 'committed-world / current-season',
-      severity: 'success',
+      severity: roster.unavailableReason ? 'info' : 'success',
     });
   }
 
@@ -182,10 +172,12 @@ export function buildCurrentConstraintsAnswer(
   }
 
   const highest = pickHighestSeverity(detected);
-  const severity: Stage4Severity = highest ? highest.severity : 'success';
+  const severity = highest?.severity ?? (roster.unavailableReason ? 'info' : 'success');
   const shortAnswer =
     detected.length === 0
-      ? 'No cap, roster, or season-mismatch warnings detected.'
+      ? roster.unavailableReason
+        ? 'Roster limits could not be checked. No other warnings were detected.'
+        : 'No cap, roster, or season-mismatch warnings detected.'
       : `${detected.length} constraint${detected.length === 1 ? '' : 's'} observed; highest severity: ${highest!.severity}.`;
 
   return {
@@ -197,6 +189,9 @@ export function buildCurrentConstraintsAnswer(
     navigationTargets: navTargets.length > 0 ? navTargets : [NAV_TARGETS.cap],
     blockingConstraints: blockers,
     deferredReasons: [
+      ...(roster.unavailableReason
+        ? [{ reason: roster.unavailableReason, authority: 'unavailable' as const }]
+        : []),
       {
         reason:
           'Move-specific legality is determined by Trade Machine and Free Agency validators, not by this guided answer.',
@@ -211,7 +206,8 @@ export function buildInspectFirstAnswer(
   context: ArchitectWorkspaceContext
 ): Stage4GuidedAnswer {
   const entry = getCatalogEntry('inspect-first')!;
-  const detected = detectConstraints(context);
+  const roster = evaluateGuideRoster(context);
+  const detected = detectConstraints(context, roster.warnings);
   const highest = pickHighestSeverity(detected);
 
   const workspaceDataAvailable =
@@ -239,16 +235,17 @@ export function buildInspectFirstAnswer(
   if (!highest) {
     const chips: Stage4EvidenceChip[] = [
       {
-        label: 'No warnings observed',
-        authority: 'committed-world / current-season',
-        severity: 'success',
+        label: roster.unavailableReason ?? 'No warnings observed',
+        authority: roster.unavailableReason ? 'unavailable' : 'committed-world / current-season',
+        severity: roster.unavailableReason ? 'info' : 'success',
       },
     ];
     return {
       ...entry,
-      status: 'available',
-      shortAnswer:
-        'No warnings observed. Continue planning from Cap Sheet or Roster as needed.',
+      status: roster.unavailableReason ? 'partial' : 'available',
+      shortAnswer: roster.unavailableReason
+        ? 'Review the Roster for available details.'
+        : 'No warnings observed. Continue planning from Cap Sheet or Roster as needed.',
       evidence: chips,
       authorityLabels: dedupeAuthorityLabels(chips),
       navigationTargets: [NAV_TARGETS.cap, NAV_TARGETS.roster],
