@@ -664,6 +664,30 @@ describe('deriveComparisonViewModel', () => {
     expect(vm.committedEventCount).toBe(3);
   });
 
+  it('waits for the first committed move when more than one page exists', () => {
+    const all = Array.from({ length: 51 }, (_, index) => makeEvent({
+      id: `move-${index + 1}`,
+      eventId: `move-${index + 1}`,
+      occurredAt: new Date(Date.UTC(2026, 9, 20 + index)).toISOString(),
+      beforeTotalsByTeam: { LAL: { teamSalary: 150_000_000 + index * 100_000 } },
+      afterTotalsByTeam: { LAL: { teamSalary: 150_100_000 + index * 100_000 } },
+    })).reverse();
+    const recent = deriveComparisonViewModel({
+      ...baseInput,
+      committedEventRows: all.slice(0, 50),
+      historyIncomplete: true,
+    });
+    expect(recent.committedEventCount).toBe(50);
+    expect(recent.capTotalDelta).toBeNull();
+    expect(recent.unavailableSummary).toContainEqual({
+      field: 'capTotalDelta',
+      reason: 'Load earlier saved moves to compare salaries from the start.',
+    });
+    const complete = deriveComparisonViewModel({ ...baseInput, committedEventRows: all });
+    expect(complete.committedEventCount).toBe(51);
+    expect(complete.capTotalDelta?.teamSalaryDelta).toBe(5_100_000);
+  });
+
   it('produces correct cap delta from multi-event stream sorted by this function', () => {
     // Pass events in reverse chronological order (as useWorldTeamEvents would)
     const newest = makeEvent({

@@ -520,9 +520,13 @@ export function useWorldTeamEvents({
     ? `${worldId}:${teamCode}:${normalizePageSize(limit)}`
     : null;
   const lastRequestScopeKeyRef = useRef<string | null>(requestScopeKey);
+  const requestGeneration = useRef(0);
+  const matchesRequestedScope = lastRequestScopeKeyRef.current === requestScopeKey;
 
   useEffect(() => {
     let isActive = true;
+    const generation = ++requestGeneration.current;
+    const isCurrent = () => isActive && generation === requestGeneration.current;
 
     if (!canQuery || !worldId || !teamCode) {
       lastRequestScopeKeyRef.current = null;
@@ -557,7 +561,7 @@ export function useWorldTeamEvents({
       limit,
     })
       .then((result) => {
-        if (!isActive) {
+        if (!isCurrent()) {
           return;
         }
         setEvents(mergeWorldEventPages(result.events));
@@ -566,7 +570,7 @@ export function useWorldTeamEvents({
         setResolution(result.resolution);
       })
       .catch((caught) => {
-        if (!isActive) {
+        if (!isCurrent()) {
           return;
         }
         if (!isRefreshOnly) {
@@ -578,7 +582,7 @@ export function useWorldTeamEvents({
         setError(caught instanceof Error ? caught.message : String(caught));
       })
       .finally(() => {
-        if (!isActive) {
+        if (!isCurrent()) {
           return;
         }
         setLoadingInitial(false);
@@ -601,6 +605,7 @@ export function useWorldTeamEvents({
       return;
     }
 
+    const generation = requestGeneration.current;
     setLoadingMore(true);
     setError(null);
 
@@ -612,6 +617,7 @@ export function useWorldTeamEvents({
         paginationState,
       });
 
+      if (generation !== requestGeneration.current) return;
       setEvents((previous) =>
         mergeWorldEventPages([...previous, ...result.events])
       );
@@ -619,9 +625,10 @@ export function useWorldTeamEvents({
       setPaginationState(result.paginationState);
       setResolution(result.resolution);
     } catch (caught) {
+      if (generation !== requestGeneration.current) return;
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
-      setLoadingMore(false);
+      if (generation === requestGeneration.current) setLoadingMore(false);
     }
   }, [
     canQuery,
@@ -644,7 +651,9 @@ export function useWorldTeamEvents({
     if (!canQuery || !worldId || !teamCode) {
       return;
     }
+    const generation = ++requestGeneration.current;
     setLoadingInitial(true);
+    setLoadingMore(false);
     setError(null);
     try {
       const result = await fetchWorldTeamEvents({
@@ -652,25 +661,27 @@ export function useWorldTeamEvents({
         teamCode,
         limit,
       });
+      if (generation !== requestGeneration.current) return;
       setEvents(mergeWorldEventPages(result.events));
       setHasMore(result.hasMore);
       setPaginationState(result.paginationState);
       setResolution(result.resolution);
     } catch (caught) {
+      if (generation !== requestGeneration.current) return;
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
-      setLoadingInitial(false);
+      if (generation === requestGeneration.current) setLoadingInitial(false);
     }
   }, [canQuery, worldId, teamCode, limit]);
 
   return {
-    events,
-    loading: loadingInitial || loadingMore,
-    loadingMore,
-    error,
-    hasMore,
-    resolution,
-    loadMore: loadMoreFn,
+    events: matchesRequestedScope ? events : [],
+    loading: canQuery && (!matchesRequestedScope || loadingInitial || loadingMore),
+    loadingMore: matchesRequestedScope && loadingMore,
+    error: matchesRequestedScope ? error : null,
+    hasMore: matchesRequestedScope && hasMore,
+    resolution: matchesRequestedScope ? resolution : null,
+    loadMore: matchesRequestedScope ? loadMoreFn : null,
     refetch,
   };
 }
