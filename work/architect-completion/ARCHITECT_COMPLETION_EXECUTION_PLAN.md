@@ -12,13 +12,14 @@ The Phase 3A execution guide is archived. For exact NBA rules use
 
 ## Execution order
 
-1. **Restore main.** Land the single read-only consumer registration with
-   green candidate checks, fresh independent review and owner merge approval.
-   Verify landed main. [Failed CI run](https://github.com/Bet-Zero/scoutzero/actions/runs/45925833448)
-2. **Reconcile the release candidate.** Three-way integrate #665 with green
-   main, preserving #664's workflow and guide retirement. The local merge
-   preview was conflict-free and kept those paths byte-identical. #662 is
-   an ancestor of #665. Keep its lifecycle and recovery. Preserve #660's
+1. **Restore main.** The consumer registration landed in
+   [#666](https://github.com/Bet-Zero/scoutzero/pull/666). The
+   [full main workflow](https://github.com/Bet-Zero/scoutzero/actions/runs/46078698577)
+   verified the repair.
+2. **Reconcile the release candidate.** The reviewed draft
+   [#668](https://github.com/Bet-Zero/scoutzero/pull/668) integrates #665
+   with green main and preserves #664's workflow and guide retirement.
+   #662 is an ancestor of #665. Keep its lifecycle and recovery. Preserve #660's
    accepted Node 22 Functions manifest/lock and optional callable runtime
    identity work as a held compatibility change. Confirm that need against
    the selected runtime before porting it. The proven HTTP route can operate
@@ -66,12 +67,25 @@ where their code and proof do not overlap. Final integrated proof joins them.
 
 | Issue | Outcome | Prerequisite |
 | --- | --- | --- |
-| [BZE-347](https://linear.app/bzero/issue/BZE-347) | Restore main contract-history validation | First |
+| [BZE-347](https://linear.app/bzero/issue/BZE-347) | Main contract-history validation restored in [#666](https://github.com/Bet-Zero/scoutzero/pull/666) | First |
 | [BZE-348](https://linear.app/bzero/issue/BZE-348) | Reconcile protected Preview with main | BZE-347 |
-| [BZE-349](https://linear.app/bzero/issue/BZE-349) | Enforce final roster legality at trade save | BZE-347 |
-| [BZE-350](https://linear.app/bzero/issue/BZE-350) | Produce first action-readiness slice | BZE-347, alongside BZE-349 |
+| [BZE-349](https://linear.app/bzero/issue/BZE-349) | Current standard and Two-Way trade ceilings landed in [#670](https://github.com/Bet-Zero/scoutzero/pull/670). Dated shortage and hardship remain open under ARCH-003 and ARCH-052. | BZE-347 |
+| [BZE-350](https://linear.app/bzero/issue/BZE-350) | First action-readiness slice landed in [#669](https://github.com/Bet-Zero/scoutzero/pull/669) | BZE-347, alongside BZE-349 |
 | [BZE-351](https://linear.app/bzero/issue/BZE-351) | Apply ordinary signing proration on lawful dates | BZE-349, BZE-350 |
 | [BZE-352](https://linear.app/bzero/issue/BZE-352) | Derive known trade money in the app | BZE-351 |
+
+## Inspect current action inputs
+
+Run the read-only inventory against the approved local financial package and
+its existing SHA-256 pin:
+
+```sh
+node --import tsx scripts/architect/inspectCurrentActionReadiness.ts <file> <sha256>
+```
+
+The report checks dated roster, salary books, trade window and Minimum route
+coverage for all 30 teams. Each proposal still needs its specific player and
+terms. Keep private source files and inspection output outside Git.
 
 ## Proposed full Architect scope
 

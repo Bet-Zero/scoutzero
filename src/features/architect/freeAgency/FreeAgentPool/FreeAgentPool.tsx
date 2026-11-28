@@ -164,6 +164,7 @@ export const FreeAgentPool = ({
   freeAgents,
   currentYear,
   worldAsOfDate,
+  teamCapSheet,
   actionOwner,
   playersMap = {},
   selectedPlayerKeys: controlledSelectedPlayerKeys,
@@ -449,6 +450,7 @@ export const FreeAgentPool = ({
       onClose: closeContractModal,
       currentYear,
       worldAsOfDate,
+      teamCapSheet,
       onSignFreeAgent: signFreeAgent,
       signAndTradeInitiation:
         signAndTradeInitiation as EditContractModalProps['signAndTradeInitiation'],
@@ -482,6 +484,7 @@ export const FreeAgentPool = ({
     handleRemove,
     offerSheetInitiation,
     signAndTradeInitiation,
+    teamCapSheet,
     worldAsOfDate,
   ]);
 

@@ -777,6 +777,85 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     });
   });
 
+  for (const { method, date, salary, display } of [
+    { method: 'Minimum', date: '2026-11-14', salary: 1_162_682, display: '$1,162,682' },
+    { method: 'Room MLE', date: '2027-01-11', salary: 8_000_000, display: '$8,000,000' },
+    { method: 'Room MLE', date: '2027-02-12', salary: 6_482_758, display: '$6,482,758' },
+  ]) {
+    test(`BZE-351: ${method} on ${date} uses its dated allowance, saves, and reloads`, async ({ page }, testInfo) => {
+      const worldId = await ensureWorldSelected(page, date);
+      const teamReference = getReviewAdminDb().doc(`architect_worlds/${worldId}/teams/${TEAM_CODE}`);
+      await teamReference.update({
+        'salaryBookInputs.taxSalary': {
+          status: 'needs-input',
+          missingInputs: ['salaryBookInputs.taxSalary.baseline'],
+          reason: 'Final Tax Salary needs the last regular-season game.',
+        },
+        exceptions: {
+          room: {
+            enabled: true,
+            totalAmount: 8_000_000,
+            usedAmount: 0,
+            remainingAmount: 8_000_000,
+          },
+        },
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await waitForBosDashboard(page);
+      await ensureSpecificWorldSelected(page, worldId);
+
+      const modal = await openStandardFreeAgentModal(page, MINIMUM_FREE_AGENT_NAME);
+      await modal.getByRole('radio', { name: /Sign Free Agent/i }).check();
+      const methodSelect = modal.locator('select').filter({ hasText: 'Minimum' });
+      await expect(methodSelect.locator(`option[value="${method}"]`)).toHaveCount(1);
+      await methodSelect.selectOption(method);
+      await modal.getByTestId('contract-years').selectOption('1');
+      const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
+      await expect(firstYearSalary).toHaveValue(display);
+      const confirm = modal.getByRole('button', { name: /^Confirm Action$/i });
+      await expect(confirm).toBeEnabled();
+      await firstYearSalary.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath('prorated-signing-desktop.png') });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(firstYearSalary).toBeVisible();
+      await expect(confirm).toBeEnabled();
+      await firstYearSalary.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath('prorated-signing-phone.png') });
+      await page.setViewportSize({ width: 1280, height: 720 });
+      // Future test scenarios record contract events after the scenario execution.
+      if (method === 'Room MLE') {
+        await expect(modal.getByText(/Trade deadline assumption 2027-02-11/)).toBeVisible();
+        await page.clock.setFixedTime(new Date(`${date}T21:00:00Z`));
+      }
+      await confirm.click();
+      await expect(page.getByTestId('cockpit-last-receipt')).toContainText(/Free agent signed/i);
+      if (method === 'Room MLE') await page.clock.setFixedTime(new Date());
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await waitForBosDashboard(page);
+      await ensureSpecificWorldSelected(page, worldId);
+      await openDashboardTab(page, 'Roster');
+      await expect(page.getByRole('button', {
+        name: `More actions for ${MINIMUM_FREE_AGENT_NAME}`,
+        exact: true,
+      })).toBeVisible();
+      const saved = await getWorldPlayerDocument(worldId, TEAM_CODE, MINIMUM_FREE_AGENT_ID);
+      expect(saved?.contract).toMatchObject({
+        signingDate: date,
+        totalValue: salary,
+        salariesByYear: [expect.objectContaining({ salary, capHit: salary })],
+      });
+      const savedTeam = (await teamReference.get()).data();
+      expect(savedTeam?.totals?.taxSalary).toBeNull();
+      if (method === 'Room MLE') {
+        expect(savedTeam?.exceptions?.room).toMatchObject({
+          usedAmount: salary,
+          remainingAmount: 8_000_000 - salary,
+          january10Proration: { salaryCapYear: 2027, unusedAmount: 8_000_000 },
+        });
+      }
+    });
+  }
+
   test('BOS ordinary signing needs Tax input before its baseline and writes nothing', async ({
     page,
   }, testInfo: TestInfo) => {

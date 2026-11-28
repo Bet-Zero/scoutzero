@@ -3,6 +3,10 @@
  * mutationPipeline.compute.signings.ts (lines 62–480).
  */
 
+import {
+  minimumSigningSeasonDays,
+  prorateSigningMinimum,
+} from '@/features/architect/utils/signings/minimumSigningProration';
 import { minimumUpliftPlayerReference } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
 import { hasPendingSeasonTaxBaseline } from './signings/pendingTaxBaseline';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -328,8 +332,9 @@ export function appendSigningSalaryBookAdjustments({
     contractYears === 1;
   if (receivesMinimumUplift) {
     const minimumScale = getCapRulesForYear(authority.salaryCapYear).salaries;
-    const applicableMinimum = minimumScale.getMinimumForYOS(yearsOfService);
-    const twoYosMinimum = minimumScale.getMinimumForYOS(2);
+    const days = minimumSigningSeasonDays(authority.worldDate, authority.salaryCapYear);
+    const applicableMinimum = prorateSigningMinimum(minimumScale.getMinimumForYOS(yearsOfService), days);
+    const twoYosMinimum = prorateSigningMinimum(minimumScale.getMinimumForYOS(2), days);
     const uplift = Math.max(0, twoYosMinimum - applicableMinimum);
     const taxMinimumUpliftLineId = `tax-salary:minimum-uplift:${operationId}`;
     if (
@@ -497,6 +502,7 @@ export function consumeSigningExceptionUsage({
   contractValue,
   timestamp,
   effectiveAt,
+  january10UnusedAmount,
   seasonEndYear = null,
 }: {
   updatedTeam: ArchitectMutationTeamRecord;
@@ -504,6 +510,7 @@ export function consumeSigningExceptionUsage({
   contractValue: number;
   timestamp: number;
   effectiveAt?: string | null;
+  january10UnusedAmount?: number;
   /** Season end-year of the signing, recorded for BAE biennial enforcement. */
   seasonEndYear?: number | null;
 }) {
@@ -575,6 +582,12 @@ export function consumeSigningExceptionUsage({
     0,
     availability.remainingAmount - contractValue
   );
+  if (january10UnusedAmount !== undefined && seasonEndYear !== null) {
+    normalizedState.january10Proration = {
+      salaryCapYear: seasonEndYear,
+      unusedAmount: january10UnusedAmount,
+    };
+  }
   normalizedState.lastUsedAt = effectiveAt || new Date(timestamp).toISOString();
   // Record the season the BAE was consumed so the biennial ("every other
   // season") restriction can be enforced after the next season rollover.
@@ -648,7 +661,7 @@ export function computeSigningResult({
         salaryCapYear: salaryCapYear as number,
       })
     : null;
-  if (governedSigning?.status === 'needs-input') {
+  if (governedSigning && governedSigning.status !== 'complete') {
     return {
       success: false,
       error:
@@ -751,6 +764,7 @@ export function computeSigningResult({
     contractValue,
     timestamp,
     effectiveAt: signingAuthority?.effectiveAt,
+    january10UnusedAmount: signingAuthority?.january10UnusedAmount,
     seasonEndYear: seasonId != null ? toEndYear(seasonId) : null,
   });
   if (exceptionConsumption.error) {

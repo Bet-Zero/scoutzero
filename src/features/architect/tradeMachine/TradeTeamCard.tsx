@@ -20,6 +20,7 @@ import {
 import { validationFlags } from '@/config/validationFlags';
 import { useTradeTeamCardSalaries } from './useTradeTeamCardSalaries';
 import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/TradeSalaryPathElection';
+import { isCurrentRegularSeasonRosterDate } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 import { TradeCashConsiderationInput } from './TradeCashConsiderationInput';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
@@ -277,6 +278,11 @@ export const TradeTeamCard = ({
         <TradeSalaryPathElection
           election={salaryMatchingElection}
           outgoingPlayers={sends}
+          calculatesSavedAmounts={
+            Boolean(worldId) &&
+            isCurrentRegularSeasonRosterDate(worldAsOfDate) &&
+            ![...sends, ...incomingPlayers].some((player) => player.signAndTrade === true)
+          }
           incomingPlayers={incomingPlayers}
           onChange={onSalaryMatchingElectionChange}
           compact={compact}

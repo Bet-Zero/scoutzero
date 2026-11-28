@@ -43,6 +43,7 @@ const FreeAgencySection = ({
   freeAgents,
   currentYear,
   worldAsOfDate,
+  teamCapSheet,
   actionOwner,
   playersMap,
   outgoingOfferSheets,
@@ -179,6 +180,7 @@ const FreeAgencySection = ({
         freeAgents={freeAgents as FreeAgentPoolProps['freeAgents']}
         currentYear={currentYear}
         worldAsOfDate={worldAsOfDate}
+        teamCapSheet={teamCapSheet}
         actionOwner={freeAgentPoolActionOwner}
         playersMap={playersMap as FreeAgentPoolProps['playersMap']}
         selectedPlayerKeys={selectedPlayerKeys}

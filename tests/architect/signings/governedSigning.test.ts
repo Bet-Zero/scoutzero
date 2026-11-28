@@ -5,6 +5,7 @@ import { validateSigning } from '@/features/architect/utils/capLegalityValidatio
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import {
   applyWorldMutation,
+  buildGeneralMutationDashboardReloadTeamSnapshot,
   computeWorldMutation,
   persistWorldMutation,
   type ArchitectMutationContract,
@@ -391,6 +392,129 @@ describe('governed ordinary signing authority', () => {
     expect(resolved.authority.canonLeafIds).not.toContain('CBA2-C23.6');
   });
 
+  it.each([
+    ['2026-10-02', 1_357_763],
+    ['2026-10-20', 1_357_763],
+    // CBA2-C13.23: 149 inclusive days remaining out of 174.
+    ['2026-11-14', 1_162_682],
+  ])('validates and computes the ordinary Minimum for %s', (asOfDate, amount) => {
+    const targetTeam = governedTeam();
+    const targetPlayer = player({ age: 22, bio: { yearsExperience: 0 } });
+    const prepareContract = (salary: number) =>
+      contract({
+        totalValue: salary,
+        years: 1,
+        contractYears: 1,
+        signedUsing: 'Minimum',
+        salariesByYear: [{ season: '2026-27', salary, capHit: salary }],
+      });
+    const validate = (salary: number) =>
+      validateSigning({
+        team: targetTeam,
+        player: targetPlayer,
+        contract: prepareContract(salary),
+        signedUsing: 'Minimum',
+        year: 2027,
+        asOfDate,
+      });
+    expect(validate(amount).violations).toEqual([]);
+    expect(validate(amount - 1).violations).toEqual(
+      expect.arrayContaining([expect.objectContaining({ rule: 'min_salary_violation' })])
+    );
+    expect(validate(amount + 1).violations).toEqual(
+      expect.arrayContaining([expect.objectContaining({ rule: 'first_year_max_invalid' })])
+    );
+    const result = computeSigning({
+      targetTeam,
+      targetPlayer,
+      signingContract: prepareContract(amount),
+      signedUsing: 'Minimum',
+      asOfDate,
+      recordedAt: '2026-11-15T12:00:00-05:00',
+    });
+    expect(result.success, String(result.error)).toBe(true);
+    expect(
+      result.teamUpdates?.[0]?.team.players?.find((entry) => entry.playerId === PLAYER_ID)
+        ?.contract?.salariesByYear?.[0]
+    ).toMatchObject({ salary: amount, capHit: amount });
+  });
+
+  it('preserves the exception through the deadline and applies the retained basis afterward', () => {
+    // CBA2-C13.5 protects January use. On February 12, CBA2-C13.3
+    // applies 33 days of reduction: $8m - ($8m × 33 / 174).
+    const asOfDate = '2027-01-11';
+    const targetTeam = governedTeam({
+      exceptions: {
+        mle: { enabled: true, totalAmount: 8_000_000, usedAmount: 0, remainingAmount: 8_000_000 },
+      },
+    });
+    const makeOffer = (salary: number) => contract({
+      totalValue: salary,
+      years: 1,
+      contractYears: 1,
+      signedUsing: 'Full MLE',
+      salariesByYear: [{ season: '2026-27', salary, capHit: salary }],
+    });
+    for (const protectedDate of [asOfDate, '2027-02-11T15:00:00-05:00']) {
+      expect(resolveGovernedSigningAuthority({
+        team: targetTeam,
+        contract: makeOffer(8_000_000),
+        mechanism: 'FULL_MLE',
+        worldDate: protectedDate,
+        salaryCapYear: 2027,
+      }).status).toBe('complete');
+    }
+    expect(resolveGovernedSigningAuthority({
+      team: targetTeam,
+      contract: makeOffer(8_000_000),
+      mechanism: 'FULL_MLE',
+      worldDate: '2027-02-11T15:00:01-05:00',
+      salaryCapYear: 2027,
+    }).status).toBe('blocked');
+    const tooLarge = resolveGovernedSigningAuthority({
+      team: targetTeam,
+      contract: makeOffer(6_482_759),
+      mechanism: 'FULL_MLE',
+      worldDate: '2027-02-12',
+      salaryCapYear: 2027,
+    });
+    expect(tooLarge).toMatchObject({
+      status: 'blocked',
+      reasons: expect.arrayContaining([expect.stringContaining('$6,482,758')]),
+    });
+    const first = computeSigning({
+      targetTeam,
+      signingContract: makeOffer(5_000_000),
+      asOfDate,
+      recordedAt: '2027-01-11T16:00:00-05:00',
+    });
+    expect(first.success, String(first.error)).toBe(true);
+    const after = first.teamUpdates?.[0]?.team;
+    expect(after?.exceptions?.mle).toMatchObject({
+      usedAmount: 5_000_000,
+      remainingAmount: 3_000_000,
+      january10Proration: { salaryCapYear: 2027, unusedAmount: 8_000_000 },
+    });
+    if (!after) throw new Error('Expected the saved team result.');
+    const dashboard = buildGeneralMutationDashboardReloadTeamSnapshot(after);
+    expect(dashboard?.exceptions?.mle?.january10Proration).toEqual({
+      salaryCapYear: 2027,
+      unusedAmount: 8_000_000,
+    });
+    // The $8m opening basis still controls the reduction after the $5m use.
+    const next = resolveGovernedSigningAuthority({
+      team: { ...after, exceptions: dashboard?.exceptions },
+      contract: makeOffer(1_482_759),
+      mechanism: 'FULL_MLE',
+      worldDate: '2027-02-12',
+      salaryCapYear: 2027,
+    });
+    expect(next).toMatchObject({
+      status: 'blocked',
+      reasons: expect.arrayContaining([expect.stringContaining('$1,482,758')]),
+    });
+  });
+
   it('rejects a missing or conflicting compensation route', () => {
     const missing = resolveGovernedSigningAuthority({
       team: team(),
@@ -456,13 +580,6 @@ describe('governed ordinary signing authority', () => {
     ],
     ['moratorium', '2026-07-01', contract(), 2027, /inside the Moratorium/i],
     [
-      'post-January 10 proration',
-      '2027-01-11',
-      contract(),
-      2027,
-      /January 10 unused amount/i,
-    ],
-    [
       'unsupported governed year',
       '2027-07-08',
       contract({
@@ -489,6 +606,25 @@ describe('governed ordinary signing authority', () => {
       expect(resolved.reasons.join(' ')).toMatch(expected);
     }
   );
+
+  it('requires the January balance when prior exception spending has no date', () => {
+    const targetTeam = team({
+      exceptions: {
+        mle: { enabled: true, totalAmount: 14_000_000, usedAmount: 500_000, remainingAmount: 13_500_000 },
+      },
+    });
+    const resolved = resolveGovernedSigningAuthority({
+      team: targetTeam,
+      contract: contract(),
+      mechanism: 'FULL_MLE',
+      worldDate: '2027-02-12',
+      salaryCapYear: 2027,
+    });
+    expect(resolved).toMatchObject({
+      status: 'needs-input',
+      reasons: expect.arrayContaining([expect.stringContaining('January 10 exception balance')]),
+    });
+  });
 
   it('fails before writes when the canonical exception would be overused', () => {
     const result = computeSigning({
