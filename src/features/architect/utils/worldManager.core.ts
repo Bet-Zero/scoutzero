@@ -16,6 +16,7 @@ import {
   serverTimestamp,
   writeBatch,
   arrayUnion,
+  runTransaction,
   type DocumentReference,
   type WriteBatch,
 } from 'firebase/firestore';
@@ -71,11 +72,14 @@ import {
 } from '@/features/architect/utils/rightsHistory';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 import {
+  isDateOnly,
+  isDateOnlyWithinSalaryCapYear,
+} from '@/features/architect/utils/governedSeason/governedTime';
+import {
   createContractEventLedger,
   toContractEventLedgerPayload,
 } from '@/features/architect/utils/contractHistory';
 
-const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BRANCH_COPY_BATCH_LIMIT = 450;
 
 type BranchCopyRecord = Record<string, unknown>;
@@ -131,6 +135,13 @@ export class BranchWorldCleanupError extends Error {
     this.cleanupResult = args.cleanupResult ?? null;
     this.cleanupFailure = args.cleanupFailure ?? null;
     this.cleanupPending = cleanupPending;
+  }
+}
+
+class WorldDateChangeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorldDateChangeError';
   }
 }
 
@@ -751,7 +762,7 @@ const initializeArchitectWorld = async (input: {
 };
 
 const normalizeWorldAsOfDate = (asOfDate: string): string => {
-  if (!asOfDate || !ISO_DATE_ONLY_PATTERN.test(asOfDate)) {
+  if (!isDateOnly(asOfDate)) {
     throw new Error('asOfDate must be a YYYY-MM-DD string');
   }
   return asOfDate;
@@ -1024,9 +1035,35 @@ export async function updateWorldAsOfDate(
   const normalizedAsOfDate = normalizeWorldAsOfDate(asOfDate);
   const metadataRef = worldMetadataRef(worldId);
 
-  await updateDoc(metadataRef, {
-    asOfDate: normalizedAsOfDate,
-    lastModifiedAt: serverTimestamp(),
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(metadataRef);
+    if (!snapshot.exists()) throw new Error('This saved world is unavailable.');
+    const world = snapshot.data();
+    if (
+      world.currentSeason === '2026-27' &&
+      world.simulationFinancialBaseline?.classification === 'SIMULATION'
+    ) {
+      if (!isDateOnlyWithinSalaryCapYear(normalizedAsOfDate, 2027)) {
+        throw new WorldDateChangeError(
+          'Changing the Salary Cap Year requires a season transition.'
+        );
+      }
+      if (!isDateOnly(world.asOfDate)) {
+        throw new WorldDateChangeError(
+          'This world needs a valid saved date before time can move.'
+        );
+      }
+      if (normalizedAsOfDate < world.asOfDate) {
+        throw new WorldDateChangeError(
+          `This world cannot move backward. Choose ${world.asOfDate} or a later date.`
+        );
+      }
+      if (normalizedAsOfDate === world.asOfDate) return;
+    }
+    transaction.update(metadataRef, {
+      asOfDate: normalizedAsOfDate,
+      lastModifiedAt: serverTimestamp(),
+    });
   });
 }
 

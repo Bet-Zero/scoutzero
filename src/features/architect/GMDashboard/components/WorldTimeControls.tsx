@@ -53,7 +53,9 @@ export function WorldTimeControls({
       console.error('Failed to advance world time:', error);
       setDraftDate(asOfDate || '');
       setMutationError(
-        `Could not advance world date. Saved world date is still ${savedDateLabel}.`
+        error instanceof Error && error.name === 'WorldDateChangeError'
+          ? error.message
+          : `Could not advance world date. Saved world date is still ${savedDateLabel}.`
       );
     }
   };
@@ -74,7 +76,9 @@ export function WorldTimeControls({
       console.error('Failed to update world time:', error);
       setDraftDate(asOfDate || '');
       setMutationError(
-        `Could not save world date. Saved world date is still ${savedDateLabel}.`
+        error instanceof Error && error.name === 'WorldDateChangeError'
+          ? error.message
+          : `Could not save world date. Saved world date is still ${savedDateLabel}.`
       );
     }
   };
