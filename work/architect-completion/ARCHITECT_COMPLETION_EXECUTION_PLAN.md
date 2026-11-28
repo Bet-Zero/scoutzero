@@ -68,12 +68,12 @@ where their code and proof do not overlap. Final integrated proof joins them.
 | Issue | Outcome | Prerequisite |
 | --- | --- | --- |
 | [BZE-347](https://linear.app/bzero/issue/BZE-347) | Main contract-history validation restored in [#666](https://github.com/Bet-Zero/scoutzero/pull/666) | First |
-| [BZE-348](https://linear.app/bzero/issue/BZE-348) | Reconcile protected Preview with main | BZE-347 |
+| [BZE-348](https://linear.app/bzero/issue/BZE-348) | [Draft #668](https://github.com/Bet-Zero/scoutzero/pull/668) holds the protected release candidate and current and legacy History index definitions. Compare deployed Rules and indexes and obtain release authorization. | BZE-347 and the current implementation baseline |
 | [BZE-349](https://linear.app/bzero/issue/BZE-349) | Current standard and Two-Way trade ceilings landed in [#670](https://github.com/Bet-Zero/scoutzero/pull/670). Dated shortage and hardship remain open under ARCH-003 and ARCH-052. | BZE-347 |
 | [BZE-350](https://linear.app/bzero/issue/BZE-350) | First action-readiness slice landed in [#669](https://github.com/Bet-Zero/scoutzero/pull/669) | BZE-347, alongside BZE-349 |
-| [BZE-351](https://linear.app/bzero/issue/BZE-351) | Apply ordinary signing proration on lawful dates | BZE-349, BZE-350 |
+| [BZE-351](https://linear.app/bzero/issue/BZE-351) | Dated ordinary signing proration landed in [#672](https://github.com/Bet-Zero/scoutzero/pull/672). November Minimum, January full-value exception and post-deadline reduced exception signings saved and reloaded. | BZE-349, BZE-350 |
 | [BZE-352](https://linear.app/bzero/issue/BZE-352) | Dated trade figures landed in [#673](https://github.com/Bet-Zero/scoutzero/pull/673). Ordinary and mixed deals saved and reloaded with the money fields blank. | BZE-351 in the original sequence. This independently reviewable change proceeded during its review. |
-| [BZE-354](https://linear.app/bzero/issue/BZE-354) | Guard rewinds and year changes for current saved simulation worlds | BZE-347 |
+| [BZE-354](https://linear.app/bzero/issue/BZE-354) | The first date guard landed in [#674](https://github.com/Bet-Zero/scoutzero/pull/674). It refused rewinds and year changes and preserved a forward edit on reload. | BZE-347 |
 
 ## Inspect current action inputs
 
