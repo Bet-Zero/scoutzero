@@ -348,6 +348,9 @@ export const purgeArchitectWorld = onCall(
     enforceAppCheck: false, // Can enable later for additional security
     timeoutSeconds: 60,
     memory: '256MiB',
+    ...(process.env.SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT
+      ? { serviceAccount: process.env.SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT }
+      : {}),
   },
   async (
     request: CallableRequest<{
