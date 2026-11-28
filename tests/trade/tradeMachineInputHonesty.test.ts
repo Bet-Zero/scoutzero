@@ -11,11 +11,7 @@ import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts'
 
 describe('Trade Machine exception inputs', () => {
   it('leaves a team with no Traded Player Exceptions with none', () => {
-    const team = augmentTeamWithExceptions(
-      { id: 'BOS', tradeExceptions: [] },
-      2027,
-      capProjections
-    );
+    const team = augmentTeamWithExceptions({ id: 'BOS', tradeExceptions: [] });
 
     expect(getTeamTpeList(team)).toEqual([]);
   });
@@ -27,15 +23,56 @@ describe('Trade Machine exception inputs', () => {
       amount: 4_000_000,
       expiresOn: '2027-02-01',
     };
-    const team = augmentTeamWithExceptions(
-      { id: 'BOS', tradeExceptions: [recorded] },
-      2027,
-      capProjections
-    );
+    const team = augmentTeamWithExceptions({
+      id: 'BOS',
+      tradeExceptions: [recorded],
+    });
 
     expect(getTeamTpeList(team)).toEqual([
       expect.objectContaining({ id: 'bos-tpe-1', amount: 4_000_000 }),
     ]);
+  });
+
+  it('gives a team with no recorded free-agent exceptions no exception room', () => {
+    const team = augmentTeamWithExceptions({ id: 'BOS', exceptions: {} });
+
+    expect(team?.faExceptionBuckets).toBeUndefined();
+  });
+
+  it("uses the team's recorded exception amounts, not the league's full amounts", () => {
+    const team = augmentTeamWithExceptions({
+      id: 'BOS',
+      exceptions: {
+        mle: {
+          enabled: true,
+          totalAmount: 14_104_000,
+          usedAmount: 4_000_000,
+          remainingAmount: 10_104_000,
+        },
+        bae: { enabled: false, totalAmount: 5_135_000 },
+      },
+    });
+
+    expect(team?.faExceptionBuckets).toEqual([
+      {
+        type: 'NTMLE',
+        amount: 14_104_000,
+        used: 4_000_000,
+        remaining: 10_104_000,
+        expiresAt: null,
+      },
+    ]);
+  });
+
+  it('keeps buckets the team already carries', () => {
+    const buckets = [{ type: 'BAE', remaining: 1_000_000, expiresAt: null }];
+    const team = augmentTeamWithExceptions({
+      id: 'BOS',
+      faExceptionBuckets: buckets,
+      exceptions: { mle: { enabled: true, totalAmount: 14_104_000 } },
+    });
+
+    expect(team?.faExceptionBuckets).toBe(buckets);
   });
 });
 

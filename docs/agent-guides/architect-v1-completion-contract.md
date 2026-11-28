@@ -88,10 +88,22 @@ each need the owner's OK, as AGENTS.md lists.
 6. **Proportionate proof** (November 10). Legality, financial and saving changes
    keep tests and an independent review. Per-change browser certificates and
    hash bundles are replaced by the final acceptance battery below.
+7. **Sandbox is the primary experience** (owner said in chat, November 28;
+   part of V1). Sandbox is Architect without a saved world, and it is expected
+   to be used far more than worlds: like a public trade machine, but with every
+   Architect tool. It shows the current maintained NBA snapshot (rosters,
+   Contracts, money, exceptions, restrictions and draft rights at a stated
+   date) and is held to exactly the same rule and money standard as a world.
+   It is never a lower-trust "preview". An untouched new world created from
+   the same snapshot must give the same books and the same verdicts; the only
+   difference is that a world saves its own simulated history.
 
 ## Required V1 workflows
 
-All workflows run inside a saved world unless noted. Each must also meet the
+Each workflow must work in a saved world. Under decision 7, every workflow
+that does not depend on saving (W2 through W10 and W14) must also work in
+Sandbox, with the same results. Saving, reload persistence, Team History,
+Compare and moves-so-far stay saved-world behavior. Each must also meet the
 [behavior standard](#behavior-standard). Rooms on `main`: Roster, Cap Sheet,
 Full Cap Table, Trade Machine, Free Agency, Team History, Compare, Guide, and the
 cockpit chrome (top bar, navigation rail, Team Plan drawer). The Offseason room
@@ -163,6 +175,13 @@ is excluded from V1 navigation.
   season, save status, moves so far, pending or unsaved work, pinned players,
   draft assets, and cap and roster warnings, and stays accurate after every
   applied action and after reload.
+- **W16. Sandbox on the current snapshot.** Sandbox opens on the current
+  maintained NBA snapshot and shows its date. Every date-dependent rule uses
+  that date, never a fixed placeholder. Rosters, Contracts, salary-matching
+  amounts, exceptions, hard caps, draft rights and verdicts match an untouched
+  new world created from the same snapshot. Nothing is invented where data is
+  missing: a missing fact is a visible needs-input result or a named simulation
+  assumption, the same as in a world.
 
 ## Behavior standard
 
@@ -228,7 +247,9 @@ V1 is accepted once, at the end, not change by change:
   CBA-derived amount, threshold, date, eligibility result or verdict it checks,
   the expected value is written from the pinned Canon leaf and the source or
   labeled assumption it depends on, never taken from the app's output. Excluded
-  mechanisms are expected to stop.
+  mechanisms are expected to stop. It also runs the W16 cases: representative
+  trades and signings in Sandbox give the same amounts and verdicts as in an
+  untouched new world from the same snapshot.
 - **E2. Owner acceptance.** One review link per review wave (screenshots of
   every changed state at 1280×720 and a plain-language summary). The owner
   replies approve, approve with notes, or not yet, and explicitly accepts V1.
