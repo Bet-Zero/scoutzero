@@ -12,6 +12,7 @@ import type {
   Stage3ComparisonViewModel,
   Stage3RosterEntry,
   Stage3CapTotalDelta,
+  Stage3ExceptionDelta,
   Stage3TaxApronPostureDelta,
   Stage3UnavailableSummaryEntry,
 } from '@/features/architect/comparison/types';
@@ -213,6 +214,40 @@ const ApronPostureDisplay = ({
     </dl>
   );
 };
+
+const exceptionDollars = new Intl.NumberFormat('en-US', {
+  style: 'currency', currency: 'USD', maximumFractionDigits: 2,
+});
+
+function TradeExceptionChanges({
+  delta,
+}: {
+  delta: Extract<Stage3ExceptionDelta, { status: 'available' }>;
+}) {
+  return (
+    <ul className="space-y-2 text-xs">
+      {delta.balances.map(({ exceptionId, label, remaining }) => (
+        <li key={exceptionId}>
+          <p className="font-semibold text-cockpit-text-secondary">
+            {label ? `Trade exception from ${label}` : 'Trade exception'}
+          </p>
+          <ul className="text-cockpit-text-muted">
+            {delta.entries.filter((entry) => entry.exceptionId === exceptionId)
+              .map(({ key, kind, amount, occurredAt }) => (
+                <li key={key}>
+                  {kind === 'created' ? 'Created' : 'Used'} {exceptionDollars.format(amount)}
+                  {occurredAt && ` · ${occurredAt.slice(0, 10)}`}
+                </li>
+              ))}
+          </ul>
+          <p className="text-cockpit-text-secondary">
+            {remaining === null ? 'Current balance unavailable' : `Remaining ${exceptionDollars.format(remaining)}`}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 // Owner-facing names for internal comparison field keys (BZE-209): the raw
 // keys stay in the view-model contract, but never print on screen.
@@ -522,6 +557,13 @@ export const ComparisonSection = ({
         <SectionCard testId="comparison-apron-delta">
           <SectionHeading>Tax / Apron Status</SectionHeading>
           <ApronPostureDisplay delta={viewModel.taxApronPostureDelta} />
+        </SectionCard>
+      )}
+
+      {viewModel.exceptionDelta.status === 'available' && (
+        <SectionCard testId="comparison-trade-exceptions">
+          <SectionHeading>Trade Exceptions</SectionHeading>
+          <TradeExceptionChanges delta={viewModel.exceptionDelta} />
         </SectionCard>
       )}
 

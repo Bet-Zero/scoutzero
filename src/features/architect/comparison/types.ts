@@ -44,10 +44,19 @@ export interface Stage3TaxApronPostureDelta {
   authority: 'committed-world / event-derived';
 }
 
-export interface Stage3ExceptionDelta {
-  status: 'deferred';
-  reason: string;
-}
+export type Stage3ExceptionDelta =
+  | { status: 'deferred'; reason: string }
+  | {
+      status: 'available';
+      entries: {
+        key: string;
+        exceptionId: string;
+        kind: 'created' | 'used';
+        amount: number;
+        occurredAt: string | null;
+      }[];
+      balances: { exceptionId: string; label: string | null; remaining: number | null }[];
+    };
 
 export interface Stage3CommittedEventReference {
   eventId: string;
@@ -97,7 +106,7 @@ export interface Stage3ComparisonViewModel {
   capTotalDelta: Stage3CapTotalDelta | null;
   /** Tax/apron posture delta. Null if apron boolean data is absent. */
   taxApronPostureDelta: Stage3TaxApronPostureDelta | null;
-  /** Exception delta is always deferred in Stage 3. */
+  /** Recorded trade exception changes and balances that agree with the saved ledger. */
   exceptionDelta: Stage3ExceptionDelta;
   /** All teams that appear in committed events or world metadata modifiedTeams. */
   changedTeams: Stage3ChangedTeamsSummary;
