@@ -3,7 +3,10 @@ import {
   getCanonicalExceptionAvailability,
   getCanonicalExceptionKeyForSigningMechanism,
 } from '@/features/architect/utils/exceptions/exceptionOwnership';
-import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  resolveGovernedSeasonEnvelope,
+} from '@/features/architect/utils/governedSeason';
 import { simulationTradeDeadline } from '@/features/architect/utils/governedSeason/simulationTradeDeadline';
 import { normalizeSalaryBookAsOfDate } from '@/features/architect/utils/capTotals';
 import {
@@ -142,8 +145,24 @@ export function resolveOrdinaryExceptionSigningProration(
   const days = minimumSigningSeasonDays(date, salaryCapYear);
   const deadline = simulationTradeDeadline(salaryCapYear);
   const balance = getCanonicalExceptionAvailability(team, key);
-  if (!days || !deadline || !balance.entry || !balance.enabled) {
-    return { reason: 'The calendar, trade deadline or available signing exception is missing for this date.' };
+  if (!days) {
+    const closing = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+      (entry) => entry.salaryCapYear === salaryCapYear && entry.authority === 'official'
+    )?.regularSeasonClosing.value;
+    return {
+      reason: closing && date > closing
+        ? `Dated exception signings are supported through ${closing}, the end of the regular season.`
+        : 'The signing allowance needs a confirmed regular-season calendar for this date.',
+    };
+  }
+  if (!deadline) {
+    return { reason: 'The signing allowance needs the confirmed trade deadline for this season.' };
+  }
+  if (!balance.entry) {
+    return { reason: 'The saved team has no balance recorded for the selected signing exception.' };
+  }
+  if (!balance.enabled) {
+    return { reason: 'The selected signing exception is unavailable to this team. Choose an available signing method.' };
   }
   const lastUse = governingCalendarDate(balance.entry.lastUsedAt);
   const retained =
@@ -260,7 +279,7 @@ export function resolveGovernedSigningAuthority({
     reasons.push(
       mechanism === 'CONFLICT'
         ? 'The selected signing route conflicts with the Contract signing route.'
-        : 'Signing requires one supported, explicit compensation route.'
+        : 'The selected compensation route is unsupported for ordinary signings. Choose a supported signing method.'
     );
   }
 
@@ -274,7 +293,7 @@ export function resolveGovernedSigningAuthority({
     contract?.isRookieScale === true;
   if (date && date <= moratoriumEndDate && !moratoriumException) {
     reasons.push(
-      'This ordinary signing is inside the Moratorium and does not identify an enumerated signing branch.'
+      'This signing method is closed during the July Moratorium. Choose an eligible Moratorium method or a lawful signing date.'
     );
   }
   const unavailableRoute = ordinarySigningProrationUnavailable(

@@ -74,10 +74,11 @@ proof joins them.
 | [BZE-354](https://linear.app/bzero/issue/BZE-354) | The first date guard landed in [#674](https://github.com/Bet-Zero/scoutzero/pull/674). It refused rewinds and year changes and preserved a forward edit on reload. | BZE-347 |
 | [BZE-355](https://linear.app/bzero/issue/BZE-355) | Attribute opening obligations separately in History. Landed in [#679](https://github.com/Bet-Zero/scoutzero/pull/679). | Existing waiver and History models |
 | [BZE-356](https://linear.app/bzero/issue/BZE-356) | The shared current-season roster policy in Guide landed in [#677](https://github.com/Bet-Zero/scoutzero/pull/677). | BZE-349 |
-| [BZE-357](https://linear.app/bzero/issue/BZE-357) | Show unknown stretch status accurately. | BZE-355 |
-| [BZE-362](https://linear.app/bzero/issue/BZE-362) | Show signed cap and apron space in the shared team status strip. | Existing salary books |
+| [BZE-357](https://linear.app/bzero/issue/BZE-357) | Show unknown stretch status accurately. Landed in [#681](https://github.com/Bet-Zero/scoutzero/pull/681). | BZE-355 |
+| [BZE-362](https://linear.app/bzero/issue/BZE-362) | Show signed cap and apron space in the shared team status strip. Landed in [#682](https://github.com/Bet-Zero/scoutzero/pull/682). | Existing salary books |
 | [BZE-364](https://linear.app/bzero/issue/BZE-364) | Explain why an ordinary signing cannot proceed in Free Agency. | BZE-350, BZE-351 |
 | [BZE-363](https://linear.app/bzero/issue/BZE-363) | Distinguish a dated tax projection from a final assessment. | BZE-350; CBA2-C08.1 |
+| [BZE-365](https://linear.app/bzero/issue/BZE-365) | Show exception creation and use in Compare from committed records. | BZE-352 |
 
 ## Inspect current action inputs
 

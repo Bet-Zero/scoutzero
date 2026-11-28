@@ -371,6 +371,23 @@ function waiverLifecycle() {
 }
 
 describe('governed ordinary signing authority', () => {
+  it.each([
+    ['2026-07-02', 'FULL_MLE', team(), /closed during the July Moratorium/],
+    ['2027-01-15', 'FULL_MLE', team({ exceptions: {} }), /no balance recorded/],
+    ['2027-04-12', 'FULL_MLE', team(), /supported through 2027-04-11/],
+    [WORLD_DATE, 'DPE', team(), /unsupported for ordinary signings/],
+  ] as const)('explains signing readiness at %s for %s', (worldDate, mechanism, teamState, message) => {
+    const result = resolveGovernedSigningAuthority({
+      team: teamState,
+      contract: contract(),
+      mechanism,
+      worldDate,
+      salaryCapYear: 2027,
+    });
+    expect(result.status).toBe('needs-input');
+    expect('reasons' in result && result.reasons[0]).toMatch(message);
+  });
+
   it('uses exact official season inputs and charges only first-year salary to an exception', () => {
     const resolved = resolveGovernedSigningAuthority({
       team: team(),
@@ -525,7 +542,7 @@ describe('governed ordinary signing authority', () => {
     });
     expect(missing.status).toBe('needs-input');
     if (missing.status === 'needs-input') {
-      expect(missing.reasons.join(' ')).toMatch(/supported, explicit/i);
+      expect(missing.reasons.join(' ')).toMatch(/unsupported for ordinary signings/i);
     }
 
     const conflicting = computeSigning({
@@ -578,7 +595,7 @@ describe('governed ordinary signing authority', () => {
       2027,
       /total value conflicts/i,
     ],
-    ['moratorium', '2026-07-01', contract(), 2027, /inside the Moratorium/i],
+    ['moratorium', '2026-07-01', contract(), 2027, /closed during the July Moratorium/i],
     [
       'unsupported governed year',
       '2027-07-08',
