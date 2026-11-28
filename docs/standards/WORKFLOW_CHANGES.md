@@ -189,3 +189,57 @@ the archived Phase 3A guide, so don't delete it from the archive.
   owner's OK; a private GitHub repository is suggested).
 - Consider turning on GitHub branch protection for `main` so tests must pass
   before anything merges (needs the owner's OK).
+
+## November 28, 2026: simplify the operating model
+
+**Why.** The owner set the principle: be rigorous about NBA rule correctness,
+money calculations, saved-world integrity, data accuracy and real security, and
+pragmatic about everything else. The November 22 cleanup left several sources
+of approval and review stops in place. The test runner marked almost every
+change "review: required", because file names containing words like "cap",
+"trade" or "commit", any deletion, any edit to the rules, and any import of
+Firebase all counted. AGENTS.md then required a second review whenever the
+runner said so. Merging, every visible change and deleting a doc each needed
+the owner. The Architect boundary kept work in separate "lanes", and the V1
+contract applied its final-acceptance evidence standard to every workflow
+change.
+
+### What changed
+
+| Item | Change | Where the old version is |
+| --- | --- | --- |
+| `AGENTS.md` | Rewritten around the principle above. Agents merge their own pull requests when CI is green and any required second review passed. Owner approval is limited to the "Ask the owner first" list: source data, production and Firebase deployments, migration, billing, credentials, permissions and settings, outside contact, private data, deleting saved user data, product scope, and redesigns. Ordinary visible changes no longer wait for approval. Second review is required for money, legality and rule logic, saved-world writes, security, source data accepted as fact, and weakening tests, but not for screens, docs, these rules or tooling. Discoveries stop work only when they change what the product does, its scope, cost or schedule. Related work can share one pull request. Superseded docs can be deleted or archived. | git history |
+| `.github/pull_request_template.md` | The second-review line now names when one is needed. | git history |
+| `docs/agent-guides/architect-v1-completion-contract.md` | Rewritten as one current-state page. Dated override layers are folded into the current text; every required workflow, owner decision and exclusion is kept. Product acceptance (the E1 battery and E2 owner review) is separate from individual changes, which follow AGENTS.md. Per-workflow "live browser proof, owner review" evidence rules now apply to the final battery only. The post-V1 trade-bonus "certified release" unblock condition is removed; trade bonuses stay post-V1 and must stop with needs-input. | git history |
+| `docs/agent-guides/architect-boundary.md` | Keeps trusted surfaces, the Trade Machine build direction, the data architecture and the design laws. The "scope protection" lanes (no engine changes in UI work, splitting issues), duplicated owner gates and the validation section are removed; AGENTS.md covers them. | git history |
+| `work/architect-completion/V1_FINISH_CHECKLIST.md` | The duplicated target and standing decisions now point to the contract. The working rule points to AGENTS.md. E1 no longer calls an "exact-candidate" review a landing gate. Item status text is unchanged. | git history |
+| `scripts/run-tests-by-diff.mjs`, `tests/runTestsByDiff.test.ts` | The runner only selects checks; it no longer prints `review: required`, and the `Validation-Review` trailer is ignored. Rules and doc edits no longer pull in the tooling suites; the files that tests read by path (the rulebook pin note and several workflows) map to those tests. A `package.json` edit limited to helper scripts no longer triggers the full suite. Native test files run one at a time, because two tooling suites interfere in parallel (this already failed on `main`). The three review-classification test groups were removed. All other runner tests remain, and new ones cover the new behavior. | git history |
+| `.github/workflows/claude-independent-review.yml`, `tests/tooling/claudeIndependentReview.node-test.ts` | `/claude-independent-review` on its own reviews the pull request's current commit; explicit SHAs still work. Wording about "frozen exact candidates" is plain now. The writer check, read-only checker, credential scanning, live-identity checks and receipt format are unchanged. The NBA data publication workflow reads that receipt format. New test cases cover the bare request. | git history |
+| `tests/tooling/phase3aWorkflow.node-test.ts` | Removed the test that checked the pull request template's wording. | git history |
+| `package.json` | Removed the unused `docs:guardrails` and `test:private-source-review` scripts and stale `lint:md` ignores. | git history |
+| `docs/guides/CONTRIBUTING.md`, `docs/INDEX.md`, `docs/reference/PROJECT_SCHEMA.md`, `docs/operations/CLOUD_DEVELOPMENT.md`, `.claudeignore` | The contributing guide's own branch naming, PR checklist (full suite, lint) and "maintainer approval" process now point to AGENTS.md. Stale return-package and guardrail references are removed. | git history |
+| `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md` | Now the single documentation-placement standard, absorbing the useful parts of the two docs below. | git history |
+
+### Removed or retired
+
+| Removed | What it was | Where it is now |
+| --- | --- | --- |
+| `docs/standards/RETURN_PACKAGE_STANDARD.md`, `WORKSPACE_GUARDRAILS.md` | Return-package rules (return packages were retired November 22) | `archive/docs/standards/` |
+| `docs/standards/COMMUNICATION_RULES.md` | Duplicated AGENTS.md's owner rules and required "extreme detail" plans | `archive/docs/standards/` |
+| `docs/standards/CREATING_PERMANENT_DOCS.md`, `DOCUMENTATION_UPDATE_RULES.md` | Overlapping documentation rules, merged into the structure standard | `archive/docs/standards/` |
+| `.claude/commands/review.md` | An audit prompt that replaced Claude Code's built-in `/review` and produced a "preflight return package". The owner's audit template remains in `docs/PROACTIVE_AUDIT_TEMPLATE.md`. | `archive/docs/standards/claude-review-command.md` |
+| `.codex/hooks.json` | A Codex hook that ran Graphify from a path on one Mac before every shell command. It fails elsewhere and contradicted "Graphify is optional". The Graphify skill in `.codex/skills/` is unchanged. | git history |
+| `scripts/docs/checkWorkspaceGuardrails.mjs` | Checked that no return packages lived in `docs/` | git history |
+
+### Not changed
+
+- Every "Ask the owner first" safety item from November 22 except merging, which
+  is now routine.
+- Application tests, NBA rulebook lookup and pin test, security tests of the
+  review workflow, CI's pull request and nightly jobs, the Architect type-cast
+  gate, and the NBA data maintenance and publication workflows.
+- `work/architect-completion/ARCHITECT_COMPLETION_EXECUTION_PLAN.md`, which
+  Codex updates as steps land. It already agrees with these rules (routine
+  merges are authorized; publication, deployments and scope stay gated).
+- The retired BZE-321 draft-review workflows and their tests. They only run for
+  a branch that no longer exists and impose nothing on ordinary work.
