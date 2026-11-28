@@ -571,7 +571,7 @@ export const CapSheet = ({
           As of {taxEstimate.date}, the estimate is {taxEstimate.distanceFromTaxLevel === 0
             ? 'at the tax line'
             : `${formatCapSheetMoney(Math.abs(taxEstimate.distanceFromTaxLevel))} ${taxEstimate.distanceFromTaxLevel < 0 ? 'below' : 'above'} the tax line`}
-          {' '}if Team Salary stays at {formatCapSheetMoney(taxEstimate.teamSalary)} through the last game’s start,
+          {' '}if the team had the same {formatCapSheetMoney(taxEstimate.teamSalary)} in Team Salary at the start of its last regular-season game,
           before Tax Salary adjustments. Final Tax Salary needs the last-game baseline and adjustments.
         </p>
       )}
