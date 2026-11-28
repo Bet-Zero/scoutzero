@@ -46,7 +46,14 @@ The Phase 3A execution guide is archived. For exact NBA rules use
    last regular-season game (CBA2-C08.1). Validate lawful cases at their
    world dates and exercise save, room return and full reload for each
    touched team. For changed UI verify 1280×720 and phone width.
-5. **Close V1 through its checklist.** Reuse accepted engines, atomic writes,
+5. **Make Sandbox and saved worlds one Architect.** Follow
+   [the accepted unification plan](../sandbox-unification/PLAN_FINAL.md)
+   (owner direction November 28: Sandbox is V1, needs no signup, keeps applied
+   moves on the browser until Reset, and uses the same rules and money as a
+   world). Its stages 0–7 deliver checklist Phase 2b (S1–S4) and W16. The
+   comparison record (both original plans and the three reviews) sits beside
+   it in `work/sandbox-unification/`.
+6. **Close V1 through its checklist.** Reuse accepted engines, atomic writes,
    revision and digest protections and valid case evidence. Add focused proof
    for changed or missing behavior and then one integrated scenario battery.
    Routine merges use the owner's standing authorization. Private publication,
@@ -79,7 +86,15 @@ proof joins them.
 | [BZE-364](https://linear.app/bzero/issue/BZE-364) | Explain why an ordinary signing cannot proceed in Free Agency. Landed in [#683](https://github.com/Bet-Zero/scoutzero/pull/683). | BZE-350, BZE-351 |
 | [BZE-363](https://linear.app/bzero/issue/BZE-363) | Dated, conditional tax estimate and final assessment distinction landed in [#686](https://github.com/Bet-Zero/scoutzero/pull/686). | BZE-350; CBA2-C08.1 |
 | [BZE-365](https://linear.app/bzero/issue/BZE-365) | Saved trade exception creation, use and balance landed in [#687](https://github.com/Bet-Zero/scoutzero/pull/687). | BZE-352 |
-| [BZE-366](https://linear.app/bzero/issue/BZE-366) | Load earlier saved moves in Compare before reporting the original-baseline salary change. | BZE-365 |
+| [BZE-366](https://linear.app/bzero/issue/BZE-366) | Load earlier saved moves in Compare before reporting the original-baseline salary change. Landed in [#689](https://github.com/Bet-Zero/scoutzero/pull/689). | BZE-365 |
+| [BZE-367](https://linear.app/bzero/issue/BZE-367) | Sandbox stage 0: record the unification plan in the V1 records. | Accepted PLAN_FINAL |
+| [BZE-368](https://linear.app/bzero/issue/BZE-368) | Sandbox stage 1: one starting state for Sandbox and new worlds. | BZE-367 |
+| [BZE-369](https://linear.app/bzero/issue/BZE-369) | Sandbox stage 2: a complete trade in Sandbox, kept until Reset. | BZE-368 |
+| [BZE-370](https://linear.app/bzero/issue/BZE-370) | Sandbox stage 3: finish trade rules and dates in both modes. | BZE-369 |
+| [BZE-371](https://linear.app/bzero/issue/BZE-371) | Sandbox stage 4: signings, own free agents, options, extensions and waivers. | BZE-368, BZE-369 |
+| [BZE-372](https://linear.app/bzero/issue/BZE-372) | Sandbox stage 5: offer sheets and sign-and-trade. | BZE-371 |
+| [BZE-373](https://linear.app/bzero/issue/BZE-373) | Sandbox stage 6: every room agrees; honest dates and saving labels. | Migrated actions |
+| [BZE-374](https://linear.app/bzero/issue/BZE-374) | Sandbox stage 7: data refresh and live-site acceptance. | All required actions; owner OK for the live install |
 
 ## Inspect current action inputs
 
