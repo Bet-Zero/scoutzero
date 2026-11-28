@@ -8,11 +8,13 @@ import {
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   query,
   setDoc,
+  serverTimestamp,
   updateDoc,
   where,
   writeBatch,
@@ -23,6 +25,16 @@ import { fileURLToPath } from 'node:url';
 import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
 import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
 import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
+
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { deleteApp, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import {
+  assertWorldInitializationLease,
+  reserveWorldInitialization,
+  WORLD_WORK_LIMITS,
+} from '../../../functions/src/architect/worldAdmission';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -992,5 +1004,101 @@ describeWithFirestoreEmulator('draft inventory opt-in boundary', () => {
         )
       ).exists()
     ).toBe(false);
+  });
+});
+
+describe.skipIf(!HAS_FIRESTORE_EMULATOR_HOST)('normal-world production Rules patch', () => {
+  const fixture = path.resolve(__dirname, '../../../tests/fixtures/architect/normalWorldProductionBaseline.rules');
+  const patchPath = path.resolve(__dirname, '../../../docs/operations/ARCHITECT_WORLD_RULES.patch');
+  const projectId = 'demo-architect-normal-world-rules';
+  let productionEnv: RulesTestEnvironment;
+
+  beforeAll(async () => {
+    const digest = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
+    expect(digest(await fs.readFile(fixture))).toBe(
+      '9689576ca2c543f564857982a13d49effb6ddf131c0bf5a985171deea39e6df6'
+    );
+    const rules = execFileSync('patch', ['--batch', '--silent', '--output=-', fixture], {
+      input: await fs.readFile(patchPath),
+    });
+    expect(digest(rules)).toBe(
+      '1ac1bcea447d13e59ab74d62555df9339c3ecb031327de92c4d336ac4dc722a1'
+    );
+    productionEnv = await initializeTestEnvironment({
+      projectId,
+      firestore: { ...requireEmulatorHost(), rules: rules.toString('utf8') },
+    });
+    await productionEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      for (const [id, shape] of [
+        ['managed', { worldLifecycleVersion: 1 }],
+        ['legacy', {}],
+        ['owner_preview_retained', { ownerPreview: true }],
+      ] as const) {
+        await setDoc(doc(db, 'architect_worlds', id), { createdBy: UID_A, worldName: id, ...shape });
+        await setDoc(doc(db, 'architect_worlds', id, 'teams', TEAM_CODE), { roster: [] });
+      }
+      await setDoc(doc(db, 'architect_privateSimulationPackages', 'financial-fixture'), { brotli: 'fixture' });
+    });
+  });
+
+  afterAll(async () => {
+    await productionEnv?.clearFirestore();
+    await productionEnv?.cleanup();
+  });
+
+  it('preserves owner access, prevents forged lifecycle fields, and fences all writes during deletion', async () => {
+    const owner = productionEnv.authenticatedContext(UID_A).firestore();
+    const other = productionEnv.authenticatedContext(UID_B).firestore();
+    for (const id of ['managed', 'legacy', 'owner_preview_retained']) {
+      const ownerRoot = doc(owner, 'architect_worlds', id);
+      const ownerTeam = doc(owner, 'architect_worlds', id, 'teams', TEAM_CODE);
+      await assertSucceeds(getDoc(ownerTeam));
+      await assertFails(getDoc(doc(other, 'architect_worlds', id, 'teams', TEAM_CODE)));
+      await assertSucceeds(updateDoc(ownerRoot, { worldName: 'Still accessible' }));
+      await assertFails(updateDoc(ownerRoot, { worldLifecycleVersion: 2 }));
+      await assertFails(updateDoc(ownerRoot, { worldLifecycle: { state: 'deleting' } }));
+      await productionEnv.withSecurityRulesDisabled(async (context) => {
+        await updateDoc(doc(context.firestore(), 'architect_worlds', id), { worldLifecycle: { state: 'deleting' } });
+      });
+      await assertSucceeds(getDoc(ownerRoot));
+      await assertFails(updateDoc(ownerRoot, { worldLifecycle: deleteField() }));
+      await assertFails(updateDoc(ownerTeam, { roster: ['blocked'] }));
+    }
+    await assertFails(setDoc(doc(owner, 'architect_worlds', 'forged'), {
+      createdBy: UID_A, worldName: 'Forged', createdAt: serverTimestamp(), worldLifecycleVersion: 1,
+    }));
+    await assertFails(getDoc(doc(owner, 'architect_privateSimulationPackages', 'financial-fixture')));
+  });
+
+  it('admits a single initializer, fences an expired writer and replays only the committed owner request', async () => {
+    const app = initializeApp({ projectId }, projectId);
+    const admin = getFirestore(app);
+    try {
+      const worldId = 'initialization-lease';
+      const results = await Promise.allSettled([
+        reserveWorldInitialization(admin, UID_A, worldId, 'same-request', 1000),
+        reserveWorldInitialization(admin, UID_A, worldId, 'same-request', 1000),
+      ]);
+      const accepted = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+      expect(accepted).toHaveLength(1);
+      expect(accepted[0].replay).toBe(false);
+      if (accepted[0].replay) throw new Error('Expected the first initialization lease.');
+      const later = 1001 + WORLD_WORK_LIMITS.leaseMs;
+      const replacement = await reserveWorldInitialization(admin, UID_A, worldId, 'same-request', later);
+      if (replacement.replay) throw new Error('Expected a replacement initialization lease.');
+      await expect(admin.runTransaction((tx) =>
+        assertWorldInitializationLease(admin, tx, worldId, accepted[0].lease!, later)
+      )).rejects.toMatchObject({ code: 'initialization-expired' });
+      await admin.runTransaction(async (tx) => {
+        await assertWorldInitializationLease(admin, tx, worldId, replacement.lease, later);
+        tx.create(admin.doc(`architect_worlds/${worldId}`), { createdBy: UID_A, worldLifecycleVersion: 1 });
+      });
+      await expect(reserveWorldInitialization(admin, UID_A, worldId, 'same-request', later)).resolves.toEqual({ replay: true });
+      await expect(reserveWorldInitialization(admin, UID_B, worldId, 'same-request', later)).rejects.toMatchObject({ code: 'world-conflict' });
+    } finally {
+      await admin.terminate();
+      await deleteApp(app);
+    }
   });
 });

@@ -14,7 +14,9 @@ Rules release for rollback. The live rules captured on November 25 were
 `firestore.owner-preview.rules` from commit
 `1353a2d0acb4ef176e9dd216cc420a9082485b4f`, SHA-256
 `9689576ca2c543f564857982a13d49effb6ddf131c0bf5a985171deea39e6df6`.
-Confirm that digest before applying the [targeted Rules change](ARCHITECT_WORLD_RULES.patch).
+The [public Rules capture](../../tests/fixtures/architect/normalWorldProductionBaseline.rules)
+retains those bytes for review and testing. Confirm the live digest before
+applying the [targeted Rules change](ARCHITECT_WORLD_RULES.patch).
 If the live copy has drifted, review the same scoped changes against the active
 file before publishing. An unchanged copy produces candidate SHA-256
 `1ac1bcea447d13e59ab74d62555df9339c3ecb031327de92c4d336ac4dc722a1`.
@@ -24,7 +26,12 @@ owner of a world stamped by the server with `worldLifecycleVersion: 1`. It
 reserves the stamp and deletion field, stops client writes while a world is
 being deleted, and preserves the previous access paths for existing worlds.
 Keep the other site's collections and Rules as deployed. The package,
-initialization-claim and usage paths remain denied to browsers.
+initialization-claim and usage paths remain denied to browsers. The captured
+Rules already require the absence of `worldLifecycle` for managed root updates,
+child finalization and all descendant writes. The patch extends those checks to
+new ordinary worlds and adds the same fence to legacy writes during deletion.
+The Rules emulator test applies the patch, checks both digests and exercises the
+managed, existing legacy and retained access paths.
 
 Both History indexes were enabled on November 25. Confirm those definitions
 are still enabled and leave all existing indexes in place.
