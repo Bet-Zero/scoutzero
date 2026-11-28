@@ -11,7 +11,10 @@ import type {
 } from './useTradeMachine.types';
 import { TeamMap, TeamCodeMap, type TeamEntry } from '@/constants/teamList';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
-import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
+import {
+  getCanonicalExceptionAvailability,
+  type CanonicalNonTpeExceptionKey,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
 
 export const DEBUG_ENT = Boolean(import.meta?.env?.VITE_DEBUG_ENTITLEMENTS);
 
@@ -226,44 +229,42 @@ export const getCapTotalsForYear = (
 };
 
 /* ============================
-   Helpers: FA buckets & test TPE seeding
+   Helpers: free-agent exception buckets
    ============================ */
 
-function getMLEBAEForYear(
-  endYear: number,
-  capProjections: UnknownRecord | null | undefined
-) {
-  if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
+/** Trade Machine bucket type for each canonical team exception it may use. */
+const FA_EXCEPTION_BUCKET_SOURCES = [
+  ['mle', 'NTMLE'],
+  ['room', 'RMLE'],
+  ['bae', 'BAE'],
+] as const satisfies readonly (readonly [
+  CanonicalNonTpeExceptionKey,
+  string,
+])[];
 
-  const key = toSeasonKey(endYear);
-  const fromComposite = capProjections?.[key] || {};
-  const fromNumeric = capProjections?.[endYear] || {};
-  const src = (
-    Object.keys(fromComposite as object).length ? fromComposite : fromNumeric
-  ) as Record<string, unknown>;
-
-  return {
-    fullMLE: Number(src.fullMLE ?? src.mle ?? 0),
-    roomMLE: Number(src.roomMLE ?? src.rmle ?? 0),
-    bae: Number(src.bae ?? 0),
-  };
-}
-
-export function augmentTeamWithExceptions(
-  team: UnknownRecord | null,
-  endYear: number,
-  capProjections: UnknownRecord | null | undefined
-) {
+/**
+ * Builds the Trade Machine's free-agent exception buckets from the team's own
+ * recorded exception state, the same source the Cap Sheet shows. An exception
+ * the team does not hold, has disabled, or has no record of gets no bucket.
+ * Never default to the league's full exception amounts: that would hand every
+ * team spending room it may not have.
+ */
+export function augmentTeamWithExceptions(team: UnknownRecord | null) {
   if (!team) return team;
 
   if (!Array.isArray(team.faExceptionBuckets)) {
-    const { fullMLE, roomMLE, bae } = getMLEBAEForYear(endYear, capProjections);
     const buckets = [];
-    if (fullMLE > 0)
-      buckets.push({ type: 'NTMLE', remaining: fullMLE, expiresAt: null });
-    if (roomMLE > 0)
-      buckets.push({ type: 'RMLE', remaining: roomMLE, expiresAt: null });
-    if (bae > 0) buckets.push({ type: 'BAE', remaining: bae, expiresAt: null });
+    for (const [key, type] of FA_EXCEPTION_BUCKET_SOURCES) {
+      const exception = getCanonicalExceptionAvailability(team, key);
+      if (!exception.present || !exception.enabled) continue;
+      buckets.push({
+        type,
+        amount: exception.totalAmount,
+        used: exception.usedAmount,
+        remaining: exception.remainingAmount,
+        expiresAt: null,
+      });
+    }
     if (buckets.length) team.faExceptionBuckets = buckets;
   }
 

@@ -204,7 +204,7 @@ export function useTradeMachineTeamOps({
           teamObj.pickRulesById = {};
         }
 
-        augmentTeamWithExceptions(teamObj, yearKey, capProjections);
+        augmentTeamWithExceptions(teamObj);
 
         // === Baseline payroll wiring on select (SSOT) ===
         const {
