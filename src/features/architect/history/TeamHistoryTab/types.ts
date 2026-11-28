@@ -95,6 +95,7 @@ export type TeamHistoryWaivedContractEntry = {
   waivedOn?: string | null;
   stretched?: boolean | null;
   deadCap?: Record<string, number> | null;
+  openingObligation?: boolean;
 };
 
 export type TeamHistoryExceptionHistoryEntry = {
