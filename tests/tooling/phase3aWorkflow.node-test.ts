@@ -295,18 +295,6 @@ test('Trade Receipt certification harness binds pushed candidate, screenshots an
   assert.match(certificationHarness, /manifest\.json/);
 });
 
-test('pull request template keeps honest check reporting and the second-review question', () => {
-  const template = fs.readFileSync(
-    path.join(repoRoot, '.github/pull_request_template.md'),
-    'utf8'
-  );
-
-  assert.match(template, /skipped checks are never reported as passed/);
-  assert.match(template, /Second review \(required when AGENTS\.md or `npm run test:diff` says so\)/);
-  assert.match(template, /Fixes BZE-xx` only if this\npull request finishes that issue/);
-  assert.doesNotMatch(template, /Independent Claude returned `ACCEPT`/);
-});
-
 test('draft review evidence requires History, Compare and reload for both teams', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'draft-review-proof-'));
   try {

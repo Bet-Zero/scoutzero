@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -19,6 +20,8 @@ import {
   selectValidationProfile,
   selectTestPlan,
   executePlan,
+  packageScriptsOnly,
+  RUNNER_SCRIPTS,
 } from '../scripts/run-tests-by-diff.mjs';
 
 const temporary: string[] = [];
@@ -77,7 +80,6 @@ describe('actual change rather than feature responsibility', () => {
     });
     expect(plan.profile).toMatchObject({
       level: 'cosmetic',
-      review: 'agent-decides',
       build: true,
       typecheck: false,
     });
@@ -130,7 +132,7 @@ describe('actual change rather than feature responsibility', () => {
       )
     ).toBe(false);
   });
-  it('does not make ordinary behavior plus a regression and second file consequential', async () => {
+  it('keeps ordinary behavior with a regression and a second file ordinary', async () => {
     const inputs: string[][] = [];
     const plan = await selectTestPlan(
       [hook, 'src/features/filters/filterTypes.ts', regression],
@@ -141,10 +143,7 @@ describe('actual change rather than feature responsibility', () => {
         },
       }
     );
-    expect(plan.profile).toMatchObject({
-      level: 'ordinary',
-      review: 'agent-decides',
-    });
+    expect(plan.profile.level).toBe('ordinary');
     expect(inputs[0]).toEqual([
       hook,
       'src/features/filters/filterTypes.ts',
@@ -171,106 +170,31 @@ describe('actual change rather than feature responsibility', () => {
       false
     );
   });
-  it.each([
-    'src/features/architect/utils/capTotals/computeTeamCapTotals.ts',
-    'src/features/architect/data/capYearData.ts',
-    'src/features/architect/data/minimumSalaryScales.ts',
-    'src/features/architect/data/rookieScale.ts',
-    'src/features/architect/hooks/useCapValidation.ts',
-    'src/features/architect/hooks/useTradeMachineValidation.ts',
-    'src/features/architect/tradeMachine/useGovernedSignAndTradePreview.ts',
-    'src/features/architect/cockpit/tradeOpenRequest.ts',
-    'src/features/architect/GMDashboard/hooks/useArchitectActions.contractActions.ts',
-    'src/features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts',
-    'src/features/architect/utils/salaryEngine/salaryEngine.ts',
-    'src/features/architect/utils/capLegalityValidation.ts',
-    'src/features/architect/utils/capLegality/postStateCapValidator.ts',
-    'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.ts',
-    'src/features/architect/utils/tradeMachine/utils/salaryMargin.ts',
-    'src/features/architect/utils/capUtils.ts',
-    'src/features/architect/utils/hardCapUtils.ts',
-    'src/features/architect/utils/contractSalaryUtils.ts',
-    'src/features/architect/utils/playerRulesProfile/extensionRules.eligibility.ts',
-    'src/features/architect/utils/playerRulesProfile/computeProfile.ts',
-    'src/features/architect/utils/tpeLifecycle.ts',
-    'src/features/architect/utils/cbaConstants.ts',
-    'src/features/architect/utils/leagueInvariants.ts',
-    'src/features/architect/utils/freeAgentRights.ts',
-    'src/features/architect/utils/draftPenaltyOrder.ts',
-    'src/features/architect/utils/draftPickRelease.ts',
-    'src/features/architect/utils/draftPickCashSale.ts',
-    'src/features/architect/utils/draftPickOwnership.ts',
-    'src/features/architect/utils/draftPickLineage.ts',
-    'src/features/architect/utils/draftPickFoundation.ts',
-    'src/features/architect/utils/draftReview/consumption.ts',
-    'src/features/architect/utils/draftReview/seasonTotals.ts',
-    'src/features/architect/utils/draftReview/seasonPrerequisite.ts',
-    'src/features/architect/utils/draftReview/inventoryFence.ts',
-    'src/features/architect/utils/draftReview/fixturePins.ts',
-    'src/features/architect/utils/offseason/resolveOffseasonTransition.optionDecisions.ts',
-    'src/features/architect/utils/offseason/resolveOffseasonTransition.validation.ts',
-    'src/features/architect/utils/transactionHistory/transactionEventSerialization.ts',
-    'src/features/architect/utils/transactionHistory/transactionCommitManifest.ts',
-    'functions/src/architect/trustedContractBaseline.ts',
-    'functions/src/architect/initializeWorld.ts',
-    'functions/src/architect/purgeWorld.ts',
-    'server/draftReview.ts',
-    'api/architect/draft-review.ts',
-    'scripts/buildCertifiedSeason.mjs',
-    'src/shared/utils/contracts/contractUtils.ts',
-    'src/features/architect/utils/mutationPipeline.ts',
-    'src/firebase/firebaseHelpers.ts',
-    'firestore.rules',
-  ])('requires review for executable sensitive work: %s', (file) => {
-    const profile = selectValidationProfile([file]);
-    expect(profile).toMatchObject({
-      level: 'consequential',
-      review: 'required',
-    });
-    expect(profile.broadReasons).toEqual([]);
-  });
-  it('keeps non-financial utilities and the independent ordinary holdout ordinary', () => {
+  it('treats changed utilities as ordinary behavior without a full suite', () => {
     for (const file of [
       hook,
       'src/shared/utils/routing/playerRouteUtils.ts',
       'src/features/architect/utils/seasonFormat.ts',
       'src/features/architect/GMDashboard/hooks/useArchitectModals.ts',
+      'src/features/architect/utils/capTotals/computeTeamCapTotals.ts',
+      'functions/src/architect/initializeWorld.ts',
+      'firestore.rules',
       room,
     ]) {
       expect(selectValidationProfile([file])).toMatchObject({
         level: 'ordinary',
-        review: 'agent-decides',
         broadReasons: [],
       });
     }
   });
-  it.each([
-    "import {db} from '@/firebaseConfig';",
-    "import {getSalaryProfile} from '@/features/architect/utils/salaryEngine/salaryEngine';",
-    "export {getApronStatus} from '../utils/capUtils';",
-  ])(
-    'requires review for a direct protected runtime dependency: %s',
-    (dependency) => {
-      const contents = { [room]: { before, after: dependency + '\n' + after } };
-      expect(selectValidationProfile([room], { contents })).toMatchObject({
-        level: 'consequential',
-        review: 'required',
-        broadReasons: [],
-      });
-      const removed = { [room]: { before: dependency + '\n' + before, after } };
-      expect(
-        selectValidationProfile([room], { contents: removed }).review
-      ).toBe('required');
-    }
-  );
-  it('does not turn type-only imports or unchanged sensitive logic into a cosmetic review gate', () => {
+  it('treats an added import as behavior and an unchanged one as presentation', () => {
     const typeOnly =
       "import type {SalaryProfile} from '@/features/architect/utils/salaryEngine/salaryEngine';\n";
     expect(
       selectValidationProfile([room], {
         contents: { [room]: { before, after: typeOnly + after } },
       })
-    ).toMatchObject({ level: 'ordinary', review: 'agent-decides' });
+    ).toMatchObject({ level: 'ordinary' });
     const dependency = "import {db} from '@/firebaseConfig';\n";
     expect(
       selectValidationProfile([room], {
@@ -278,7 +202,7 @@ describe('actual change rather than feature responsibility', () => {
           [room]: { before: dependency + before, after: dependency + after },
         },
       })
-    ).toMatchObject({ level: 'cosmetic', review: 'agent-decides' });
+    ).toMatchObject({ level: 'cosmetic' });
     const source = readFileSync(hook, 'utf8');
     expect(
       selectValidationProfile([hook], {
@@ -289,9 +213,9 @@ describe('actual change rather than feature responsibility', () => {
           },
         },
       })
-    ).toMatchObject({ level: 'ordinary', review: 'agent-decides' });
+    ).toMatchObject({ level: 'ordinary' });
   });
-  it('mixed financial work cannot hide behind presentation or an unchecked label', async () => {
+  it('behavior changes cannot hide behind presentation or an unchecked label', async () => {
     const file =
       'src/features/architect/utils/capTotals/computeTeamCapTotals.ts';
     const plan = await selectTestPlan([room, file], {
@@ -302,55 +226,115 @@ describe('actual change rather than feature responsibility', () => {
         return { ...empty(), node: ['tests/computeTeamCapTotals.test.ts'] };
       },
     });
-    expect(plan.profile).toMatchObject({
-      level: 'consequential',
-      review: 'required',
-    });
+    expect(plan.profile.level).toBe('ordinary');
     expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
     expect(plan.selected.node).toEqual(['tests/computeTeamCapTotals.test.ts']);
   });
-  it('policy changes select their safeguards exactly once without the application suite', async () => {
+  it('runner and rules changes run the runner tests through the import graph and lint the docs', async () => {
     const plan = await selectTestPlan(
       ['scripts/run-tests-by-diff.mjs', 'AGENTS.md'],
       {
         discover: async () => ({
           ...empty(),
           node: ['tests/runTestsByDiff.test.ts'],
-          native: ['tests/tooling/phase3aWorkflow.node-test.ts'],
         }),
       }
     );
-    expect(plan.profile.review).toBe('required');
     expect(plan.selected.node).toEqual(['tests/runTestsByDiff.test.ts']);
-    expect(plan.selected.native).toEqual([
+    expect(plan.selected.native).toEqual([]);
+    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+    expect(
+      plan.commands.some((c) =>
+        c.args?.some((arg) => arg.endsWith('markdownlint.js'))
+      )
+    ).toBe(true);
+  });
+  it('runs tests that read changed files by path', async () => {
+    const canon = await selectTestPlan(['docs/reference/cba/README.md'], {
+      discover: async () => empty(),
+    });
+    expect(canon.selected.native).toEqual([
       'tests/tooling/phase3aWorkflow.node-test.ts',
     ]);
-    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+    expect(canon.commands.some((c) => c.args?.includes('fetch'))).toBe(true);
+    const ci = await selectTestPlan(['.github/workflows/ci.yml'], {
+      discover: async () => empty(),
+    });
+    expect(ci.selected.node).toEqual(['tests/runTestsByDiff.test.ts']);
+    const review = await selectTestPlan(
+      ['.github/workflows/claude-independent-review.yml'],
+      { discover: async () => empty() }
+    );
+    expect(review.selected.native).toEqual([
+      'tests/tooling/claudeIndependentReview.node-test.ts',
+    ]);
   });
-  it.each([
-    'scripts/review/runExactHeadProbe.ts',
-    'scripts/ci/run_architect_ship_gates.mjs',
-    'scripts/docs/checkWorkspaceGuardrails.mjs',
-    'tests/tooling/phase3aWorkflow.node-test.ts',
-    'docs/reference/cba/README.md',
-  ])(
-    'protects validation/review mechanisms beyond the selector: %s',
-    (file) => {
-      expect(selectValidationProfile([file])).toMatchObject({
-        level: 'consequential',
-        review: 'required',
-        policy: true,
-        broadReasons: [],
+  it('runs the full suite for dependency or runner-script changes, not helper scripts', async () => {
+    const base = JSON.stringify(
+      {
+        name: 'x',
+        scripts: { build: 'vite build', helper: 'a' },
+        dependencies: { a: '1' },
+      },
+      null,
+      2
+    );
+    const helper = base.replace('"helper": "a"', '"helper": "b", "other": "c"');
+    const removed = base.replace(',\n    "helper": "a"', '');
+    const runner = base.replace('vite build', 'vite build --mode x');
+    const dependency = base.replace('"a": "1"', '"a": "2"');
+    expect(removed).not.toContain('helper');
+    expect(packageScriptsOnly(base, helper)).toBe(true);
+    expect(packageScriptsOnly(base, removed)).toBe(true);
+    expect(packageScriptsOnly(base, runner)).toBe(false);
+    expect(packageScriptsOnly(base, dependency)).toBe(false);
+    expect(packageScriptsOnly(base, '{')).toBe(false);
+    const plan = (after: string) =>
+      selectTestPlan(['package.json'], {
+        contents: { 'package.json': { before: base, after } },
+        discover: async () => {
+          throw new Error('helper scripts are not behavior');
+        },
       });
+    for (const after of [helper, removed]) {
+      const result = await plan(after);
+      expect(result.commands.some((c) => c.script === 'test:full')).toBe(false);
+      expect(result.profile.level).toBe('cosmetic');
     }
-  );
+    for (const after of [runner, dependency]) {
+      const result = await selectTestPlan(['package.json'], {
+        contents: { 'package.json': { before: base, after } },
+        discover: async () => empty(),
+      });
+      expect(result.commands.some((c) => c.script === 'test:full')).toBe(true);
+    }
+    expect(
+      (
+        await selectTestPlan(['package.json'], {
+          discover: async () => empty(),
+        })
+      ).commands.some((c) => c.script === 'test:full')
+    ).toBe(true);
+  });
+  it('treats every npm script a workflow runs as a runner script', () => {
+    const workflows = readdirSync('.github/workflows').filter((file) =>
+      file.endsWith('.yml')
+    );
+    const invoked = workflows.flatMap((file) =>
+      [
+        ...readFileSync(path.join('.github/workflows', file), 'utf8').matchAll(
+          /npm run ([\w:-]+)/g
+        ),
+      ].map((match) => match[1])
+    );
+    expect(invoked.length).toBeGreaterThan(0);
+    expect(invoked.filter((script) => !RUNNER_SCRIPTS.has(script))).toEqual([]);
+  });
   it('keeps a scoped tooling type configuration out of full application validation', async () => {
     const plan = await selectTestPlan(['tsconfig.cloud.json'], {
       discover: async () => empty(),
     });
     expect(plan.profile).toMatchObject({
-      level: 'consequential',
-      review: 'required',
       build: false,
       typecheck: false,
       broadReasons: [],
@@ -365,10 +349,7 @@ describe('actual change rather than feature responsibility', () => {
       const plan = await selectTestPlan([file], {
         discover: async () => empty(),
       });
-      expect(plan.profile).toMatchObject({
-        review: 'required',
-        broadReasons: [],
-      });
+      expect(plan.profile.broadReasons).toEqual([]);
       expect(
         plan.commands.filter((c) => c.script).map((c) => c.script)
       ).toEqual(['typecheck']);
@@ -387,10 +368,7 @@ describe('actual change rather than feature responsibility', () => {
         }),
       }
     );
-    expect(plan.profile).toMatchObject({
-      review: 'required',
-      broadReasons: [],
-    });
+    expect(plan.profile.broadReasons).toEqual([]);
     expect(plan.commands.filter((c) => c.script)).toEqual([]);
     expect(plan.commands.map((c) => c.args)).toEqual([
       ['diff', '--check'],
@@ -469,9 +447,9 @@ describe('actual change rather than feature responsibility', () => {
       1
     );
   });
-  it('additive declarations cannot remove automatic tests or downgrade required review', async () => {
+  it('additive declarations cannot remove automatic tests', async () => {
     const declarations = readDeclarations(
-      `Validation-Tests: ["${regression}"]\nValidation-Review: required\nValidation-Level: cosmetic`
+      `Validation-Tests: ["${regression}"]\nValidation-Level: cosmetic`
     );
     const plan = await selectTestPlan([hook], {
       declarations,
@@ -480,7 +458,7 @@ describe('actual change rather than feature responsibility', () => {
         return { ...empty(), ui: [regression] };
       },
     });
-    expect(plan.profile.review).toBe('required');
+    expect(plan.selected.ui).toEqual([regression]);
     expect(() =>
       readDeclarations('Validation-Tests: ["../escape.test.ts"]')
     ).toThrow();
@@ -490,7 +468,7 @@ describe('actual change rather than feature responsibility', () => {
       readDeclarations(
         `Validation-Tests: ["${regression}"]\0\nValidation-Review: required\0`
       )
-    ).toEqual({ tests: [regression], review: true, broadReasons: [] });
+    ).toEqual({ tests: [regression], broadReasons: [] });
     // Separators do not relax malformed JSON or repository-path checks.
     expect(() =>
       readDeclarations('Validation-Tests: ["test.ts"]junk\0')
@@ -541,7 +519,11 @@ describe('complete comparison and delivery path', () => {
     git('commit', '-m', 'first');
     write('other.ts', 'export const other=1;');
     git('add', '.');
-    git('commit', '-m', `second\n\nValidation-Review: required`);
+    git(
+      'commit',
+      '-m',
+      `second\n\nValidation-Full: Vite plugin changes module resolution everywhere`
+    );
     renameSync(path.join(cwd, 'other.ts'), path.join(cwd, 'renamed.ts'));
     git('add', '.');
     write('README.md', '# Changed');
@@ -551,7 +533,7 @@ describe('complete comparison and delivery path', () => {
     expect(changes.files).toEqual(
       ['README.md', 'other.ts', 'renamed.ts', hook, 'untracked\nfile.ts'].sort()
     );
-    expect(changes.declarations.review).toBe(true);
+    expect(changes.declarations.broadReasons).toHaveLength(1);
   });
   it('does not follow inherited git repository redirects', () => {
     const intended = fixture(),

@@ -23,7 +23,7 @@ Thank you for your interest in contributing to ScoutZero/HoopZero! This guide wi
 
 Before you begin, ensure you have:
 
-- **Node.js** version 18+ (check with `node --version`)
+- **Node.js** version 24.5 or newer (check with `node --version`)
 - **npm** version 9+ (check with `npm --version`)
 - **Git** for version control
 - **Firebase CLI** (optional, for emulator testing): `npm install -g firebase-tools`
@@ -147,87 +147,16 @@ Comprehensive project documentation. See [docs/INDEX.md](INDEX.md) for full navi
 
 ## Development Workflow
 
-### Branch Naming
+Branch naming, commits, pull requests, testing expectations, second review and
+merging are defined in [AGENTS.md](../../AGENTS.md); the pull request template
+is in `.github/pull_request_template.md`. In short:
 
-Use descriptive branch names that indicate the type of change:
-
-- `feat/description` - New features
-- `fix/description` - Bug fixes
-- `refactor/description` - Code refactoring
-- `docs/description` - Documentation updates
-- `test/description` - Test additions or fixes
-
-**Examples:**
-
-- `feat/add-player-comparison`
-- `fix/trade-machine-tpe-calculation`
-- `docs/update-contributing-guide`
-
-### Commit Messages
-
-Write clear, concise commit messages:
-
-```
-type: brief description
-
-Longer explanation if needed. Describe what changed and why.
-
-Co-Authored-By: Name <email>
-```
-
-**Types:**
-
-- `feat` - New feature
-- `fix` - Bug fix
-- `refactor` - Code refactoring
-- `test` - Test changes
-- `docs` - Documentation changes
-- `chore` - Maintenance tasks
-
-**Example:**
-
-```
-feat: add trade exception tracking to Trade Machine
-
-Implements TPE generation and consumption logic according to CBA rules.
-Adds validation for incoming/outgoing salary thresholds and prior-year TPE restrictions.
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
-```
-
-### Making Changes
-
-1. **Create a branch**
-
-   ```bash
-   git checkout -b feat/your-feature-name
-   ```
-
-2. **Make your changes**
-   - Follow existing code patterns
-   - Add tests for new functionality
-   - Update documentation if needed
-
-3. **Run quality checks**
-
-   ```bash
-   npm run typecheck  # TypeScript type checking
-   npm run lint       # ESLint
-   npm test           # Tests
-   ```
-
-4. **Commit your changes**
-
-   ```bash
-   git add .
-   git commit -m "feat: your descriptive message"
-   ```
-
-5. **Push to your fork**
-
-   ```bash
-   git push origin feat/your-feature-name
-   ```
+1. Branch from current `main`, named after the Linear step issue
+   (`bze-NNN-short-name`).
+2. Make the change and add tests for behavior you changed.
+3. Run `npm run test:diff -- --reporter=dot` (the same check CI runs).
+4. Open a pull request with the template and merge it when CI is green and any
+   required second review has passed.
 
 ---
 
@@ -331,15 +260,12 @@ See [TESTING.md](TESTING.md) for detailed placement rules and decision tree.
 
 - **Major reference docs**: `SCREAMING_SNAKE_CASE.md` (e.g., `DEVELOPER_GUIDE.md`, `PROJECT_SCHEMA.md`)
 - **Runbooks & operational docs**: `kebab-case.md` (e.g., `data-scrape.md`, `cutover-cleanup.md`)
-- **Return packages**: `SCREAMING_SNAKE_CASE` with optional date suffix (e.g., `PHASE_2AA_EXECUTION.md`, `DRAFT_PICKS_FIX__EXECUTION__2026-01-10.md`)
-- **Cursor prompts**: `PascalCase.md` to mirror command names (e.g., `ApplyCriticalPrompt.md`)
 - **Component hierarchy docs**: `PascalCase.md` to mirror component names (e.g., `ArchitectHierarchy.md`)
 - **Never use `camelCase`** for markdown files (e.g., ~~`capSettingsProvider.md`~~)
 
 **Directory naming:**
 
-- Use `snake_case` for directories containing deliverables (e.g., `return_packages/`)
-- Use `kebab-case` for all other directories (e.g., `cursor-prompts/`, `team-scrape/`)
+- Use `kebab-case` for directories (e.g., `team-scrape/`)
 
 ### Data Conventions
 
@@ -353,59 +279,7 @@ See [PROJECT_SCHEMA.md](../reference/PROJECT_SCHEMA.md) for comprehensive naming
 
 ## Pull Request Process
 
-### Before Submitting
-
-1. ✅ **All tests pass**: `npm test`
-2. ✅ **No TypeScript errors**: `npm run typecheck`
-3. ✅ **No linting errors**: `npm run lint`
-4. ✅ **Schema validation passes**: `npm run validate:project`
-5. ✅ **Documentation updated** (if applicable)
-6. ✅ **Branch is up to date** with main
-
-### PR Template
-
-When creating a pull request, include:
-
-```markdown
-## Summary
-Brief description of what this PR does
-
-## Type of Change
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-
-## Changes Made
-- Bullet point list of specific changes
-- Include file paths for major changes
-
-## Testing
-- [ ] All tests pass
-- [ ] Added tests for new functionality
-- [ ] Manually tested in browser
-
-## Related Issues
-Closes #123
-Related to #456
-
-## Screenshots (if applicable)
-[Add screenshots for UI changes]
-
-## Checklist
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex code
-- [ ] Documentation updated
-- [ ] No console warnings or errors
-```
-
-### Review Process
-
-1. **Automated checks** run on every PR (CI)
-2. **Code review** by maintainers
-3. **Address feedback** and update PR
-4. **Approval** and merge by maintainers
+See [AGENTS.md](../../AGENTS.md) and `.github/pull_request_template.md`.
 
 ---
 
@@ -480,9 +354,8 @@ npm test -- path/to/test.test.js
 
 ### Communication
 
-- **Issues**: Use GitHub Issues for bug reports and feature requests
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **Pull Requests**: Tag reviewers and provide context
+- **Work tracking**: Linear (team BZE); see [AGENTS.md](../../AGENTS.md#linear)
+- **Pull Requests**: Use the template and explain what the owner will notice
 
 ---
 
@@ -492,7 +365,7 @@ npm test -- path/to/test.test.js
 
 When working on Trade Machine or salary cap features:
 
-- Follow NBA Collective Bargaining Agreement rules (see `/docs/compliance/`)
+- Apply the pinned NBA rulebook exactly: `npm run architect:canon:lookup -- <LEAF>` (see [docs/reference/cba/README.md](../reference/cba/README.md))
 - Reference [Trade Machine Docs](../reference/architect/trade-machine/README.md) for current trade machine context
 - Test edge cases (apron restrictions, Stepien Rule, sign-and-trade, etc.)
 
@@ -505,7 +378,7 @@ UI hook → persistMutation(type, payload) → getStateForMutation →
 computeXxxResult → validateMutation → persistWorldMutation
 ```
 
-See [Developer Guide](guides/DEVELOPER_GUIDE.md) for detailed mutation flow.
+See [Developer Guide](DEVELOPER_GUIDE.md) for detailed mutation flow.
 
 ### Data Sources
 

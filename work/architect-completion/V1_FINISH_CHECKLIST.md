@@ -5,61 +5,27 @@ description: The single V1 status home; current 2026-27 starting-world target co
 
 # Architect V1 finish checklist
 
-Owner-approved November 10, corrected November 14, 2026. This page is the **only current status home**
-for finishing the Trade Machine and Architect V1. Update the boxes here as work
-lands. Do not add narrative history; the PR is the evidence record.
+Owner-approved November 10, corrected November 14, 2026. This page is the V1
+status home: tick boxes here as work lands, and keep narrative in the pull
+request. What each item must achieve, the owner's standing decisions and the
+exclusions are in the
+[V1 completion contract](../../docs/agent-guides/architect-v1-completion-contract.md).
+The current order of work is in the
+[execution plan](ARCHITECT_COMPLETION_EXECUTION_PLAN.md). Rules come from the
+pinned Canon via `npm run architect:canon:lookup -- <LEAF>`.
 
-Scope authority: [V1 completion contract](../../docs/agent-guides/architect-v1-completion-contract.md),
-including its November 14 owner correction. Rule authority: the pinned accepted
-CBA Canon via `npm run architect:canon:lookup -- <LEAF>` (unchanged).
-
-## Current product target (owner, 2026-11-14)
-
-[BZE-243 decision](https://linear.app/bzero/issue/BZE-243#comment-ed97943f-acd4-4dd2-baf1-bf03627fa0ab):
-a GM creates a new world with **current 2026-27 NBA teams, rosters, Contracts,
-finances, draft rights and restrictions**, at a clearly identified current
-snapshot date (prefer November 2026), and can make, validate, save and reload
-trades. This supersedes the November 12 June 5 finish line. Initialize directly
-from current inputs; changing labels or replaying every offseason action is
-not the requirement. Future-season progression remains post-V1.
-
-The June 5 packages and accepted engines/proofs, including PR #656, are
-preserved. Reopened starting-state and acceptance boxes below concern the new
-current-season target; they do not retract completed historical work. Establish
-this state before resuming B1/B5. No production activation, package publishing,
-existing-world migration, provider outreach or purchases are authorized here.
-
-## Standing decisions (owner, 2026-11-10)
-
-1. **Simulation standard everywhere.** NBA rules are applied exactly. Inputs are
-   the best available public data. A gap is filled by a named, dated assumption
-   that is visible in the product. Certified historical NBA legality is an
-   optional label, never a V1 gate. Known liabilities, credible signals, actual
-   rule violations and known restrictions are never assumed away.
-2. **The 30 rights affected by the 29 unresolved evidence mappings** are not
-   tradeable in V1 and show an honest reason. Where one reading is clearly the
-   most likely, it may be adopted as a labeled simulation assumption instead.
-   They never block unrelated rights. The 278/30/248 counts describe the retained
-   historical inventory; current membership and tradeability must be reconciled
-   after the 2026 draft and offseason, preserving unresolved-mapping lineage.
-3. **This list is frozen.** Work found later goes post-V1 unless it is a defect
-   in a listed item. Poison pill, performance incentives, nonzero trade bonuses
-   and the Disabled Player Exception are post-V1 and show needs-input.
-4. **First-round trading turns on in new simulation worlds** after Phase 1.
-   Reviewed `main` merges deliver to the normal site (owner direction,
-   2026-11-28). Existing saved worlds stay on their own baselines. The first
-   hosted private baseline installation and any shared Firebase changes have
-   separate authorization.
-5. **Proportionate proof.** Tests and independent Claude review stay on every
-   legality, financial and saving change. Per-PR retained browser certificates
-   and hash bundles are replaced by the final acceptance battery (E1).
+Target (owner, November 14): a new world with current 2026-27 teams, rosters,
+Contracts, finances, draft rights and restrictions at an identified snapshot
+date, in which a GM can make, validate, save and reload trades. The June 5
+packages and accepted engines and proofs, including PR #656, are preserved as
+historical evidence.
 
 ## Working rule
 
-Take the next unchecked item in phase order. Finishing an item is permission to
-start the next one; no new owner direction is needed between items. Stop only for
-a decision this page marks as the owner's, a production change, or a real defect
-that changes the plan.
+Take the next unchecked item. Finishing an item is permission to start the next
+one; build, test, review and merge each change as AGENTS.md describes. Stop only
+for something on AGENTS.md's "Ask the owner first" list or a discovery that
+changes V1 scope.
 
 ## Phase 1: real starting world
 
@@ -224,9 +190,7 @@ that changes the plan.
       remain enforced. The full battery was then repeated successfully after
       isolating each offer-sheet journey's immutable source inputs; it verifies
       that the shared seed and earlier worlds' evidence remain unchanged.
-      The exact-candidate
-      independent review remains a required landing gate; E2 is the owner's
-      separate final acceptance, not an automated-test claim.
+      E2 is the owner's separate final acceptance, not an automated-test claim.
       Historical June 5 pick proof (#653; gated spec
       `tests/e2e/architect-simulation-first-round-apply.spec.ts`).
       November 14: financial-proof opt-in enabled; eight journey tests passed,

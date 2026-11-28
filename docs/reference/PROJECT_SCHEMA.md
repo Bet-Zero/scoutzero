@@ -15,7 +15,7 @@ Top-level directory structure and purposes:
 | `scripts/`       | Utility scripts for Firebase, schema tools, emulator management, and CI gates           |
 | `tests/`         | Vitest unit/integration suites and Playwright E2E tests (`tests/e2e/`)                  |
 | `docs/`          | Permanent reference documentation (guides, standards, operations, reference)            |
-| `work/`          | Active working docs, preflights, and return packages; archives to `archive/work/`       |
+| `work/`          | Plans in progress shared by several pull requests; archives to `archive/work/`          |
 | `archive/`       | Historical docs and completed work no longer active source of truth                     |
 | `public/`        | Static assets (fonts, team logos, player headshots)                                     |
 | `.github/`       | GitHub Actions workflows and PR template                                                |

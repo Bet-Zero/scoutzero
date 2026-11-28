@@ -1,134 +1,52 @@
 # Documentation Structure Standard
 
-This standard defines where every type of documentation belongs in the ScoutZero repository.
+Where documentation belongs in the ScoutZero repository, and when to write it.
 
----
+## The rule
 
-## The Fundamental Rule
+`docs/` holds permanent documents that describe the project as it is now.
+Plans in progress live in `work/`; finished or retired material lives in
+`archive/`. The pull request is the record of what a piece of work changed and
+how it was checked.
 
-`docs/` contains permanent project documents only — things that describe the project as it exists now and are meant to remain indefinitely.
+Prefer updating the existing doc, README, contract or code comment over
+creating a new file. A new file, component, folder or script doesn't by itself
+need a README, header, plan or evidence document. Create a new document only
+when it has a long-lived audience that no existing home serves.
 
-Temporary, in-progress, and execution-record material lives outside `docs/`.
+## `docs/`: the permanent library
 
----
+| Pillar | What goes there |
+| --- | --- |
+| `docs/reference/` | How the system works: Architect feature docs (`reference/architect/`), Firestore schema (`reference/schema/`), repository structure (`reference/PROJECT_SCHEMA.md`), the pinned rulebook notes (`reference/cba/`) |
+| `docs/guides/` | How to work with and build the system: developer, user, contributing, testing and scripts guides |
+| `docs/operations/` | Procedures you will run more than once: data refreshes, production sync, recurring fixes |
+| `docs/standards/` | Project-wide rules: this page, the Architect visual standard, contract normalization rules, the workflow-change record |
+| `docs/agent-guides/` | The Architect V1 contract and Architect boundary |
 
-## docs/ — The Permanent Library
+At the `docs/` root: `INDEX.md` (the map), and the generated `COMPONENT_INDEX.md`,
+`FILE_MAP.md` and `components/`.
 
-Four pillars. Every document in `docs/` belongs in exactly one of them.
+Never put in `docs/`: plans, trackers, status reports, audit or certification
+snapshots, or execution evidence. Ask: "Will someone need this two years from
+now to understand how the system works?" If not, it belongs in the pull request,
+`work/` or `archive/`.
 
-### `docs/reference/`
+## `work/` and `archive/`
 
-**What it is:** Everything that describes how the system works.
+A plan that several pull requests share lives in `work/<initiative>/`. Ordinary
+tasks need no plan file. When an initiative finishes, its folder moves to
+`archive/work/<initiative>/`, unless tests or workflows still read its files.
+`archive/docs/` holds retired versions of permanent docs. Archived material is
+history, not instructions.
 
-- `docs/reference/architect/` — Architect GM Dashboard feature docs, trade machine, type hardening
-- `docs/reference/schema/` — Firestore schema docs (generated from Zod schemas)
-- `docs/reference/PROJECT_SCHEMA.md` — Repo-wide structure, naming conventions, data contracts
+## Keeping docs current
 
-**When to add here:** A new feature gets its own subfolder under `reference/` when it needs persistent behavioral documentation that agents or developers will return to repeatedly.
-
-### `docs/guides/`
-
-**What it is:** How to work with and build the system.
-
-- Developer guide, user guide, contributing guidelines
-- Testing strategy, scripts reference
-- Tool-specific references (e.g., Firestore diagnostic component)
-
-**When to add here:** A new guide covering setup, patterns, or usage that any developer would need over time.
-
-### `docs/operations/`
-
-**What it is:** How to run and maintain the system.
-
-- Data scrape runbook (player + team pipeline)
-- Prod sync runbook, draft picks commands
-- Fix procedures for recurring operational issues
-- Post-push verification checklists
-
-**When to add here:** A procedure you will run more than once. If it is a one-time action it goes in `work/` not here.
-
-### `docs/standards/`
-
-**What it is:** Rules governing how the project is built and documented.
-
-- This document
-- Workspace guardrails, return package standard
-- Communication rules, contributing conventions
-- Contract normalization rules
-
-**When to add here:** A new rule or convention that applies project-wide and agents must follow.
-
----
-
-## Root `docs/` Files
-
-Only three things belong at `docs/` root:
-
-- `docs/INDEX.md` — the navigation entry point
-- `docs/COMPONENT_INDEX.md` and `docs/FILE_MAP.md` — generated when relevant topology/doc-sync changes require it, do not edit manually
-
----
-
-## work/ — Active In-Progress Material
-
-`work/` lives at the repo root (not inside `docs/`). These are placement rules
-when a working document is needed, not requirements to create one. Ordinary
-task evidence stays in the PR; update an existing issue with a concise pointer.
-
-```
-work/
-└── <initiative-slug>/
-    ├── plan.md              # Main planning/tracking doc
-    ├── preflight.md         # Pre-execution assessment (optional)
-    ├── return_package.md    # Optional delivery evidence when explicitly needed
-    └── notes/               # Any other working docs (optional)
-```
-
-**Lifecycle:** When an initiative is complete, the entire `work/<initiative>/` folder moves to `archive/work/<initiative>/`. One move, everything archives together.
-
-**Return packages live here**, not in `docs/`. The return package for an initiative is part of that initiative's working folder.
-
----
-
-## archive/ — Historical Material
-
-```
-archive/
-├── docs/        # Historical versions of permanent docs
-└── work/        # Completed working-doc clusters
-```
-
-Archive is for material that has reference value but should not live beside active docs. Once something is in archive, it stays there.
-
----
-
-## Generated Docs
-
-`docs/components/` and `docs/reference/schema/` contain auto-generated files. Do not edit them manually — update them through their source commands (`npm run docs`, `npm run schema:generate`).
-
----
-
-## Placement Quick Reference
-
-| What | Where |
-|------|-------|
-| Feature behavioral docs | `docs/reference/<feature>/` |
-| Firestore schema docs | `docs/reference/schema/` |
-| Repo structure reference | `docs/reference/PROJECT_SCHEMA.md` |
-| Developer / user guides | `docs/guides/` |
-| Recurring operational procedures | `docs/operations/` |
-| Project rules and conventions | `docs/standards/` |
-| Working docs, preflights, return packages | `work/<initiative>/` |
-| Completed initiatives | `archive/work/<initiative>/` |
-| Historical docs | `archive/docs/` |
-
----
-
-## What Never Goes in `docs/`
-
-- Execution evidence (preflights, return packages, phase reports)
-- Plans, trackers, or in-progress notes
-- One-time audit records or certification snapshots
-- Anything with a completion date that makes it historical rather than current
-
-If you are unsure, ask: "Will someone need this two years from now to understand how the system works?" If no, it belongs in `work/` or `archive/`, not `docs/`.
+- Update a doc when behavior, data shape or a workflow changes in a way its
+  reader needs to know. A styling fix or a local bug fix usually needs none.
+- When guidance is superseded, change it where it lives instead of adding a
+  new rule elsewhere.
+- Generated docs are never edited by hand. Regenerate schema docs
+  (`npm run schema:generate`) when a schema changes, and component docs
+  (`npm run docs`) only when asked.
+- Check changed Markdown with `npm run lint:md`.

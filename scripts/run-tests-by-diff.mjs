@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Complete comparison + syntax proof + Vitest's existing consumer discovery.
-// Agents judge meaning and add relevant proof; declarations can never subtract checks.
+// It selects checks only. Whether a change needs a second review is the
+// agent's judgment under AGENTS.md. Declarations can never subtract checks.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -9,80 +10,94 @@ import ts from 'typescript';
 
 const isTest = (file) => /\.(?:test|node-test)\.[cm]?[jt]sx?$/.test(file);
 const isDoc = (file) => /\.(?:md|mdc)$/.test(file);
-const isPolicy = (file) =>
-  /^(?:AGENTS\.md|CLAUDE\.md|\.github\/|\.cursor\/rules\/|\.husky\/|docs\/(?:standards|agent-guides)\/|docs\/reference\/cba\/README\.md|scripts\/(?:run-tests-by-diff\.mjs|review\/|ci\/|docs\/checkWorkspaceGuardrails\.mjs)|tests\/(?:runTestsByDiff\.test\.ts|tooling\/phase3aWorkflow\.node-test\.ts))/.test(
-    file
-  );
 const isGlobal = (file) =>
   /^(?:package(?:-lock)?\.json|(?:vite|vitest).*\.config\.[jt]s|tsconfig(?:\.node)?\.json|tests\/(?:setup|helpers\/|__mocks__\/))/.test(
     file
   );
-// Minimum review obligations for executable responsibility changes, not suite
-// mappings. Presentation proof is checked first. Financial logic lives across
-// salary, cap, contract, trade and governed-lifecycle code and source tables,
-// including server/cloud code. Actual consequences can require review beyond
-// these responsibility signals; no signal requests a full-project suite.
-const isSensitive = (file) => {
-  const financialLogic =
-    /salary|salaries|cap|apron|contract|trade|legality|waiver|extension|exception|signing|offerSheet|rfa|rights|stepien|entitlement|governed|cba|rulesProfile|tpe|deadMoney|invariant|penalty|rookie|draft[-_]?pick|draft[-_]?review|transaction|offseason|commit|manifest|fence|ledger|evidence|certified/i.test(
-      file
+// Tests that read these files by path instead of importing them, so Vitest's
+// import graph can't connect them. Other path-read dependencies use
+// Validation-Tests trailers.
+const FILE_READ_TESTS = [
+  [
+    /^docs\/reference\/cba\/README\.md$/,
+    { native: ['tests/tooling/phase3aWorkflow.node-test.ts'] },
+  ],
+  [
+    /^\.github\/workflows\/ci\.yml$/,
+    { node: ['tests/runTestsByDiff.test.ts'] },
+  ],
+  [
+    /^\.github\/workflows\/claude-independent-review\.yml$/,
+    { native: ['tests/tooling/claudeIndependentReview.node-test.ts'] },
+  ],
+  [
+    /^\.github\/workflows\/nba-maintenance/,
+    { native: ['tests/tooling/cloudMaintenance.node-test.ts'] },
+  ],
+  [
+    /^\.github\/(?:workflows\/draft-review|draft-|bze321-)/,
+    {
+      node: [
+        'tests/architect/draftReviewDeployment.test.ts',
+        'tests/architect/draftSourceInstallation.test.ts',
+      ],
+    },
+  ],
+];
+// Scripts the runner or CI invokes. Changing one is a shared-environment change.
+// tests/runTestsByDiff.test.ts checks that every `npm run` in a workflow is here.
+export const RUNNER_SCRIPTS = new Set([
+  'prepare',
+  'preinstall',
+  'install',
+  'postinstall',
+  'build',
+  'typecheck',
+  'test',
+  'test:node',
+  'test:ui',
+  'test:full',
+  'test:diff',
+  'test:phase3a-workflow',
+  'test:hosted-review-browser',
+  'test:cloud-dev',
+  'cloud:typecheck',
+  'schema:generate',
+  'schema:check',
+  'lint:architect-gate',
+  'validate:project',
+  'ci:offer-sheet-creation-emulator-gate',
+  'regress',
+]);
+// A package.json edit confined to scripts the runner and CI don't use (adding
+// or removing a helper command) doesn't change the build or test environment.
+export function packageScriptsOnly(before, after) {
+  try {
+    const left = JSON.parse(before);
+    const right = JSON.parse(after);
+    const { scripts: leftScripts = {}, ...leftRest } = left;
+    const { scripts: rightScripts = {}, ...rightRest } = right;
+    if (JSON.stringify(leftRest) !== JSON.stringify(rightRest)) return false;
+    const names = new Set([
+      ...Object.keys(leftScripts),
+      ...Object.keys(rightScripts),
+    ]);
+    return [...names].every(
+      (name) =>
+        leftScripts[name] === rightScripts[name] || !RUNNER_SCRIPTS.has(name)
     );
-  return (
-    financialLogic ||
-    /^(?:functions\/|server\/|api\/)/.test(file) ||
-    /^tsconfig\..*\.json$/.test(file) ||
-    /(?:mutationPipeline|seasonManager|firebase|firestore|persist|world.*(?:Service|Store|Manager)|auth|src\/schemas\/|source-releases|scripts\/(?:dev|release|admin)\/|player-scrape|team-scrape)/i.test(
-      file
-    )
-  );
-};
-// A direct import guard reuses the parser already used for presentation proof.
-// It does not build a dependency graph or execute candidate modules. Keep both
-// sides: removing a protected dependency can remove a safeguard too.
-function usesSensitiveRuntimeDependency(file, contents = {}) {
-  return [contents.before, contents.after].filter(Boolean).some((text) => {
-    const source = ts.createSourceFile(
-      file,
-      text,
-      ts.ScriptTarget.Latest,
-      true
-    );
-    return source.statements.some((statement) => {
-      if (
-        !ts.isImportDeclaration(statement) &&
-        !ts.isExportDeclaration(statement)
-      )
-        return false;
-      if (statement.isTypeOnly || statement.importClause?.isTypeOnly)
-        return false;
-      const clause = statement.importClause;
-      if (
-        clause &&
-        !clause.name &&
-        clause.namedBindings &&
-        ts.isNamedImports(clause.namedBindings) &&
-        clause.namedBindings.elements.length &&
-        clause.namedBindings.elements.every((item) => item.isTypeOnly)
-      )
-        return false;
-      if (
-        statement.exportClause &&
-        ts.isNamedExports(statement.exportClause) &&
-        statement.exportClause.elements.length &&
-        statement.exportClause.elements.every((item) => item.isTypeOnly)
-      )
-        return false;
-      const specifier = statement.moduleSpecifier;
-      if (!specifier || !ts.isStringLiteral(specifier)) return false;
-      const module = specifier.text.startsWith('.')
-        ? path.posix.normalize(
-            path.posix.join(path.posix.dirname(file), specifier.text)
-          )
-        : specifier.text.replace(/^@\//, 'src/');
-      return isSensitive(module) || isPolicy(module);
-    });
-  });
+  } catch {
+    return false;
+  }
 }
+const sharesEnvironment = (file, contents = {}) =>
+  isGlobal(file) &&
+  !(
+    file === 'package.json' &&
+    contents[file]?.before &&
+    contents[file]?.after &&
+    packageScriptsOnly(contents[file].before, contents[file].after)
+  );
 const sourceFile = (file) => !isDoc(file) && !isTest(file);
 
 // Deliberately syntactic, not an attempted semantic/financial classifier.
@@ -151,7 +166,6 @@ export function presentationOnly(file, before, after) {
 
 export function readDeclarations(messages = '') {
   const tests = new Set();
-  let review = false;
   const broadReasons = [];
   // collectChanges separates commit bodies with NUL. Git's API accepts a body
   // without a final newline, so that separator can immediately follow a JSON
@@ -172,7 +186,6 @@ export function readDeclarations(messages = '') {
         throw new Error('Validation-Tests must name repository test files');
       values.forEach((file) => tests.add(file));
     }
-    if (line === 'Validation-Review: required') review = true;
     if (line.startsWith('Validation-Full: ')) {
       const reason = line.slice(17).trim();
       if (reason.length < 20)
@@ -180,7 +193,7 @@ export function readDeclarations(messages = '') {
       broadReasons.push(reason);
     }
   }
-  return { tests: [...tests], review, broadReasons };
+  return { tests: [...tests], broadReasons };
 }
 export function gitEnvironment(environment = process.env) {
   const redirects = new Set([
@@ -287,7 +300,10 @@ export function collectChanges({
     return {
       contents: Object.fromEntries(
         [...entries.keys()]
-          .filter((file) => /\.(?:[cm]?[jt]sx?|css)$/.test(file))
+          .filter(
+            (file) =>
+              /\.(?:[cm]?[jt]sx?|css)$/.test(file) || file === 'package.json'
+          )
           .map((file) => {
             let before = '',
               after = '';
@@ -330,10 +346,14 @@ export function selectValidationProfile(files, options = {}) {
     );
   const declarations = options.declarations ?? {
     tests: [],
-    review: false,
     broadReasons: [],
   };
-  const sources = files.filter(sourceFile);
+  // A helper-script edit in package.json is configuration, not behavior.
+  const sources = files.filter(
+    (file) =>
+      sourceFile(file) &&
+      !(file === 'package.json' && !sharesEnvironment(file, options.contents))
+  );
   const presentation = sources.filter(
     (file) =>
       options.contents?.[file] &&
@@ -344,44 +364,26 @@ export function selectValidationProfile(files, options = {}) {
       )
   );
   const behavior = sources.filter((file) => !presentation.includes(file));
-  const policy = files.some(isPolicy);
+  const shared = files.filter((file) =>
+    sharesEnvironment(file, options.contents)
+  );
   const broadReasons = [
     ...declarations.broadReasons,
-    ...files
-      .filter(isGlobal)
-      .map((file) => `Shared build/test environment changed: ${file}`),
+    ...shared.map((file) => `Shared build/test environment changed: ${file}`),
   ];
-  const consequential =
-    policy ||
-    options.structural === true ||
-    behavior.some(
-      (file) =>
-        isSensitive(file) ||
-        usesSensitiveRuntimeDependency(file, options.contents?.[file])
-    ) ||
-    declarations.review ||
-    broadReasons.length > 0;
   return {
-    level: consequential
-      ? 'consequential'
-      : behavior.length
-        ? 'ordinary'
-        : 'cosmetic',
-    review: consequential ? 'required' : 'agent-decides',
-    reason: consequential
-      ? 'Material executable/authority change: independent review and relevant proof'
-      : behavior.length
-        ? 'Relevant changed behavior and its consumers'
-        : 'Presentation/content syntax only: agent must verify meaning, accessibility and affected consumers',
+    level: behavior.length ? 'ordinary' : 'cosmetic',
+    reason: behavior.length
+      ? 'Changed behavior and its consumers'
+      : 'Presentation, docs or tests only: check meaning, accessibility and affected screens',
     presentation,
     behavior,
-    policy,
     broadReasons,
     // A build validates and delivers actual UI changes, regardless of feature.
-    build: sources.some((file) => /^src\//.test(file)) || files.some(isGlobal),
+    build: sources.some((file) => /^src\//.test(file)) || shared.length > 0,
     typecheck:
       behavior.some((file) => /^(?:src|server|api)\/.*\.tsx?$/.test(file)) ||
-      files.some(isGlobal),
+      shared.length > 0,
     structure: options.structural === true,
     docs: files.some(isDoc),
     declarations,
@@ -391,7 +393,10 @@ export function selectValidationProfile(files, options = {}) {
 // Use Vitest's own Vite import graph, including native and emulator test entries.
 // No candidate test is executed during discovery. String/file-read dependencies
 // are not inferred: agents retain them using additive Validation-Tests trailers.
-export async function discoverTests(files, { cwd = process.cwd() } = {}) {
+export async function discoverTests(
+  files,
+  { cwd = process.cwd(), contents = {} } = {}
+) {
   const { createVitest } = await import('vitest/node');
   const selected = {
     node: [],
@@ -412,7 +417,7 @@ export async function discoverTests(files, { cwd = process.cwd() } = {}) {
       (file) =>
         /^functions\/(?:package(?:-lock)?\.json|tsconfig\.json)$/.test(file) ||
         file === 'scripts/buildCertifiedSeason.mjs' ||
-        isGlobal(file)
+        sharesEnvironment(file, contents)
     );
     const ctx = await createVitest('test', {
       root: kind === 'functions' ? path.join(cwd, 'functions') : cwd,
@@ -443,26 +448,16 @@ export function documentationCommands(files) {
     (file) =>
       file.endsWith('.md') &&
       existsSync(file) &&
-      (file.startsWith('docs/') || !file.includes('/')) &&
-      !file.startsWith('docs/return-packages/') &&
-      path.basename(file) !== 'copilot-instructions.md'
+      (file.startsWith('docs/') || !file.includes('/'))
   );
-  return [
-    ...(markdown.length
-      ? [
-          {
-            executable: process.execPath,
-            args: [
-              'node_modules/markdownlint-cli/markdownlint.js',
-              ...markdown,
-            ],
-          },
-        ]
-      : []),
-    ...(files.some(isPolicy)
-      ? [{ script: 'docs:guardrails', fileArgs: [] }]
-      : []),
-  ];
+  return markdown.length
+    ? [
+        {
+          executable: process.execPath,
+          args: ['node_modules/markdownlint-cli/markdownlint.js', ...markdown],
+        },
+      ]
+    : [];
 }
 
 export async function selectTestPlan(files, options = {}) {
@@ -480,10 +475,10 @@ export async function selectTestPlan(files, options = {}) {
   const selected = inputs.length
     ? await (options.discover ?? discoverTests)(inputs, options)
     : { node: [], ui: [], native: [], emulator: [] };
-  if (profile.policy) {
-    selected.node.push('tests/runTestsByDiff.test.ts');
-    selected.native.push('tests/tooling/phase3aWorkflow.node-test.ts');
-  }
+  for (const [pattern, byKind] of FILE_READ_TESTS)
+    if (files.some((file) => pattern.test(file)))
+      for (const [kind, tests] of Object.entries(byKind))
+        selected[kind] = [...(selected[kind] ?? []), ...tests];
   for (const kind of Object.keys(selected))
     selected[kind] = [...new Set(selected[kind])].sort();
   const discovered = new Set(Object.values(selected).flat());
@@ -502,8 +497,7 @@ export async function selectTestPlan(files, options = {}) {
       args: ['diff', '--check', ...(options.base ? [options.base] : [])],
     },
   ];
-  if (profile.docs || profile.policy)
-    commands.push(...documentationCommands(files));
+  if (profile.docs) commands.push(...documentationCommands(files));
   if (selected.native.includes('tests/tooling/phase3aWorkflow.node-test.ts'))
     commands.push({
       executable: 'git',
@@ -594,6 +588,9 @@ export async function selectTestPlan(files, options = {}) {
         '--import',
         'tsx',
         '--test',
+        // Some tooling suites interfere when run in parallel (for example the
+        // review-workflow and canon/proof-harness suites); run files in turn.
+        '--test-concurrency=1',
         '--test-reporter=dot',
         ...selected.native,
       ],
@@ -648,9 +645,7 @@ export async function selectTestPlan(files, options = {}) {
 }
 
 export function executePlan(plan, { spawn = spawnSync, dryRun = false } = {}) {
-  console.log(
-    `Scope: ${plan.tier}; review: ${plan.profile?.review ?? 'see policy'}\n${plan.reason}`
-  );
+  console.log(`Scope: ${plan.tier}\n${plan.reason}`);
   for (const gap of plan.gaps ?? [])
     console.log(`VERIFICATION LIMITATION: ${gap}`);
   for (const command of plan.commands) {
@@ -727,7 +722,7 @@ async function main() {
         2
       )
     );
-  const summary = `Validation: ${plan.tier}; review: ${plan.profile?.review ?? 'see policy'}\nBase: ${changes.base}; head: ${changes.head}\n${plan.reason}\n${(plan.gaps ?? []).join('\n')}\nUnselected checks are not executed passes.\n`;
+  const summary = `Validation: ${plan.tier}\nBase: ${changes.base}; head: ${changes.head}\n${plan.reason}\n${(plan.gaps ?? []).join('\n')}\nUnselected checks are not executed passes.\n`;
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
   if (args.includes('--ci-plan')) return;
