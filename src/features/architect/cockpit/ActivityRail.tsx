@@ -18,8 +18,10 @@
  *    save warnings. No new rules engine.
  *  - Collapse persisted to localStorage.
  */
+import { PHONE_MEDIA_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useState,
@@ -366,13 +368,20 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
     },
     ref
   ) {
-    const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
+    const isPhone = useMediaQuery(PHONE_MEDIA_QUERY);
+    const [desktopCollapsed, setDesktopCollapsed] = useState(readCollapsed);
+    const [phoneExpanded, setPhoneExpanded] = useState(false);
+    const collapsed = isPhone ? !phoneExpanded : desktopCollapsed;
 
     useEffect(() => {
-      writeCollapsed(collapsed);
-    }, [collapsed]);
+      writeCollapsed(desktopCollapsed);
+    }, [desktopCollapsed]);
 
-    useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), []);
+    const setCollapsed = useCallback((value: boolean) => {
+      if (isPhone) setPhoneExpanded(!value);
+      else setDesktopCollapsed(value);
+    }, [isPhone]);
+    useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), [setCollapsed]);
 
     const [assetsOpen, setAssetsOpen] = useState(false);
 
@@ -530,7 +539,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
 
     return (
       <aside
-        className="flex h-full w-[280px] shrink-0 flex-col border-l border-cockpit-edge bg-cockpit-bar"
+        className="absolute inset-y-0 right-0 z-30 flex h-full w-[280px] max-w-full shrink-0 flex-col border-l border-cockpit-edge bg-cockpit-bar md:static"
         aria-label="Architect activity rail"
         data-testid="cockpit-activity-rail"
         data-collapsed="false"

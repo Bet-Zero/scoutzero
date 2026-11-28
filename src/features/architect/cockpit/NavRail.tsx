@@ -13,6 +13,7 @@
  *  - All buttons carry aria-label even when only the icon is visible so test
  *    queries like getAllByRole('button', { name: /roster/i }) continue to work.
  */
+import { PHONE_MEDIA_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useEffect, useState } from 'react';
 import type { ActiveTab } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
 
@@ -74,7 +75,8 @@ export const NavRail = ({ activeTab, items }: NavRailProps) => {
     writePersistedPin(pinned);
   }, [pinned]);
 
-  const expanded = pinned || hover;
+  const isPhone = useMediaQuery(PHONE_MEDIA_QUERY);
+  const expanded = !isPhone && (pinned || hover);
 
   return (
     <nav
@@ -100,7 +102,7 @@ export const NavRail = ({ activeTab, items }: NavRailProps) => {
           aria-pressed={pinned}
           aria-label={pinned ? 'Unpin navigation rail' : 'Pin navigation rail'}
           title={pinned ? 'Unpin' : 'Pin'}
-          className="rounded p-1 text-cockpit-text-muted transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+          className="hidden rounded p-1 text-cockpit-text-muted transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 md:block"
           data-testid="cockpit-nav-rail-pin"
         >
           <span aria-hidden className="text-[12px]">{pinned ? '⤢' : '⤡'}</span>

@@ -159,7 +159,7 @@ export const CockpitShell = ({
         onNavigateToCapSheet={onNavigateToCapSheet}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <NavRail activeTab={activeTab} items={navItems} />
         <Workbench activeTab={activeTab} rooms={rooms} />
         <ActivityRail
