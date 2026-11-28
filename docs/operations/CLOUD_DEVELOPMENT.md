@@ -35,6 +35,17 @@ use the two composite definitions in `firestore.indexes.json` for current and
 legacy events. Compare against the Firebase project before any authorized
 index deployment and retain unrelated indexes.
 
+The trusted initializer can read its two pinned releases from the existing
+Firestore project. It uses the server-only `architect_privateSimulationPackages`
+collection, document IDs `<kind>-<sha256>` and a `brotli` bytes field. The
+reader verifies the SHA-256 of the decompressed package before initialization.
+Select this source with `SCOUTZERO_SIMULATION_PACKAGE_SOURCE=firestore`, the
+two existing `SCOUTZERO_SIMULATION_*_SHA256` pins and the existing
+`SCOUTZERO_SIMULATION_LIVE` switch in the trusted runtime. Local files and
+Cloud Storage objects remain supported for their existing environments. The
+Firestore source needs an authorized private installation and a trusted
+runtime identity before hosted use.
+
 [draft #668]: https://github.com/Bet-Zero/scoutzero/pull/668
 [V1 D2]: ../../work/architect-completion/V1_FINISH_CHECKLIST.md#phase-2-deliver-on-the-normal-site
 [BZE-359]: https://linear.app/bzero/issue/BZE-359
