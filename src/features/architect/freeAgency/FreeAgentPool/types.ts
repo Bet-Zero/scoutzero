@@ -11,6 +11,7 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import type { Dispatch, SetStateAction } from 'react';
+import type { EditContractModalProps } from '@/shared/components/EditContractModal.types';
 import type { FreeAgentPoolActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import type { ActionExposureClassification } from '@/features/architect/GMDashboard/hooks/useArchitectActions.types';
 import type {
@@ -90,6 +91,7 @@ export interface FreeAgentPoolProps {
   freeAgents?: FreeAgentListItem[] | null;
   currentYear: number;
   worldAsOfDate?: string | null;
+  teamCapSheet?: EditContractModalProps['teamCapSheet'];
   actionOwner: FreeAgentPoolActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
   selectedPlayerKeys?: string[];

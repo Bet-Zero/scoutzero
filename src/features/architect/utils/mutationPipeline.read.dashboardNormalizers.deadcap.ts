@@ -19,6 +19,7 @@ import {
   toOptionalTrimmedStringOrNull,
 } from './mutationPipeline.helpers';
 import { hasMutationExceptionBuckets } from './mutationPipeline.read.normalizeData';
+import { January10ProrationZ } from '@/schemas/architect';
 import type { CanonicalNonTpeExceptionKey } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import type {
   ArchitectGeneralMutationDashboardReloadDeadCapEntry,
@@ -156,6 +157,7 @@ export function normalizeDashboardReloadExceptionEntry(
   const notes = toOptionalTrimmedStringOrNull(record.notes);
   const seasonKey = toOptionalTrimmedStringOrNull(record.seasonKey);
   const lastUsedAt = toOptionalTrimmedStringOrNull(record.lastUsedAt);
+  const january10Proration = January10ProrationZ.safeParse(record.january10Proration);
 
   if (type !== undefined) {
     normalized.type = type;
@@ -198,6 +200,9 @@ export function normalizeDashboardReloadExceptionEntry(
   }
   if (lastUsedAt !== undefined) {
     normalized.lastUsedAt = lastUsedAt;
+  }
+  if (january10Proration.success) {
+    normalized.january10Proration = january10Proration.data;
   }
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;

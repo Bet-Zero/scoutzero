@@ -317,6 +317,7 @@ export type ArchitectMutationExceptionEntry = {
   notes?: string | null;
   seasonKey?: string | null;
   lastUsedAt?: string | null;
+  january10Proration?: { salaryCapYear: number; unusedAmount: number };
   /** Season end-year the exception was last consumed (BAE biennial tracking). */
   lastUsedSeasonEndYear?: number | null;
 };
