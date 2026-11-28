@@ -143,6 +143,24 @@ export function seasonEndYearsForWorld(
 }
 
 /**
+ * The viewing year a saved world opens on: its own current season, when that
+ * season is one the dashboard can view. The calendar default (today's date)
+ * would otherwise pair the world's dated books with a different Salary Cap
+ * Year, which the governed salary authority correctly refuses.
+ */
+export function worldViewingSeasonEndYear(
+  caps: CapProjectionMap | null | undefined,
+  team: unknown,
+  worldSeason: string | null | undefined
+): number | null {
+  if (!worldSeason || !/^\d{4}-\d{2}$/.test(worldSeason)) return null;
+  const year = Number(worldSeason.slice(0, 4)) + 1;
+  return seasonEndYearsForWorld(caps, team, worldSeason).includes(year)
+    ? year
+    : null;
+}
+
+/**
  * Find the closest year in availableYears to the target year.
  * Returns the target if availableYears is empty, or the closest match by absolute difference.
  */

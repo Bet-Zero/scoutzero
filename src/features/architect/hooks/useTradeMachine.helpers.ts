@@ -12,7 +12,6 @@ import type {
 import { TeamMap, TeamCodeMap, type TeamEntry } from '@/constants/teamList';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
-import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 export const DEBUG_ENT = Boolean(import.meta?.env?.VITE_DEBUG_ENTITLEMENTS);
 
@@ -268,26 +267,7 @@ export function augmentTeamWithExceptions(
     if (buckets.length) team.faExceptionBuckets = buckets;
   }
 
-  // Phase 65: Use canonical TPE accessor for reading
-  const existingTpes = getTeamTpeList(team);
-  if (existingTpes.length === 0) {
-    team.tradeExceptions = [
-      {
-        id: `${team.id}-tpe-a`,
-        name: 'Test TPE A',
-        amount: 6_500_000,
-        expiresOn: null,
-      },
-      {
-        id: `${team.id}-tpe-b`,
-        name: 'Test TPE B',
-        amount: 2_800_000,
-        expiresOn: new Date(
-          Date.now() + 1000 * 60 * 60 * 24 * 30
-        ).toISOString(),
-      },
-    ];
-  }
-
+  // A team with no recorded Traded Player Exceptions has none. Never invent
+  // placeholder exceptions: they would become spending room in validation.
   return team;
 }
