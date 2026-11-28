@@ -1100,6 +1100,20 @@ export function attachGovernedTradeSalaryBasisToRoster<
   });
 }
 
+/**
+ * Records why a team's salary authority could not be loaded on each roster
+ * player, so a blocked trade states the real cause instead of a generic
+ * "missing" reason. It never supplies a salary.
+ */
+export function attachGovernedTradeSalaryBasisLoadErrorToRoster<
+  TPlayer extends Record<string, unknown>,
+>(players: readonly TPlayer[] | null | undefined, message: string): TPlayer[] {
+  return (players ?? []).map((player) => ({
+    ...player,
+    governedTradeSalaryBasisLoadError: message,
+  }));
+}
+
 export function resolveTradeSalaryBasisPlayerId(
   player: Record<string, unknown>
 ): string {

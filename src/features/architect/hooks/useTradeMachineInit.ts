@@ -12,6 +12,7 @@ import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitleme
 import { type PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import {
+  attachGovernedTradeSalaryBasisLoadErrorToRoster,
   attachGovernedTradeSalaryBasisToRoster,
   loadWorldGovernedTradeSalaryBasisEntries,
   resolveTradeSalaryBasisPlayerId,
@@ -125,6 +126,10 @@ export function useTradeMachineInit({
             if (!salaryBasisTeamId) {
               teamObj.governedTradeSalaryBasisLoadError =
                 'Governed Trade Machine salary authority requires a Team identity.';
+              teamObj.players = attachGovernedTradeSalaryBasisLoadErrorToRoster(
+                rosterPlayers,
+                teamObj.governedTradeSalaryBasisLoadError
+              );
             } else {
               try {
                 const salaryBasis =
@@ -144,6 +149,11 @@ export function useTradeMachineInit({
                   error instanceof Error
                     ? error.message
                     : 'Governed Trade Machine salary authority could not be loaded.';
+                teamObj.players =
+                  attachGovernedTradeSalaryBasisLoadErrorToRoster(
+                    rosterPlayers,
+                    teamObj.governedTradeSalaryBasisLoadError
+                  );
               }
             }
           }
@@ -220,14 +230,14 @@ export function useTradeMachineInit({
             console.log(
               '[init payroll SSOT]',
               teamObj.nickname || teamObj.teamName || teamObj.id,
-            {
-              year: yearKey,
-              baseline,
-              dead,
-              teamTotalSalary: teamObj.teamTotalSalary,
-              projectedSalary: teamObj.projectedSalary,
-            }
-          );
+              {
+                year: yearKey,
+                baseline,
+                dead,
+                teamTotalSalary: teamObj.teamTotalSalary,
+                projectedSalary: teamObj.projectedSalary,
+              }
+            );
 
           if (cancelled) return;
           // Record completion only after the async initialization survives its

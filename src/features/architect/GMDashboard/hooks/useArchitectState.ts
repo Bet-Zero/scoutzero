@@ -57,6 +57,7 @@ import {
   resolveUsableActiveWorldId,
   seasonEndYearsFromCaps,
   seasonEndYearsForWorld,
+  worldViewingSeasonEndYear,
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
 import { readRoomFromUrl } from './useArchitectDeskNavigation';
@@ -172,6 +173,51 @@ export function useArchitectState({
       setCurrentYear(requested);
     }
   }, [worldId, teamCapSheet, worldCurrentSeason]);
+  // Open each saved world on its own season, once per world and season (a
+  // season advance changes it), instead of the calendar or a season saved in
+  // this browser. Two choices win over it: an explicit ?season= link on the
+  // page's first load (for the first world opened), and any season the
+  // viewer picks before the world's season becomes viewable.
+  const explicitSeasonAtLoadRef = useRef(
+    Number.isFinite(
+      parseInt(
+        new URLSearchParams(window.location.search).get('season') ?? '',
+        10
+      )
+    )
+  );
+  const worldSeasonOpeningRef = useRef<{
+    key: string;
+    yearAtOpen: number;
+    settled: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (!worldId || !worldCurrentSeason) return;
+    const key = `${worldId}:${worldCurrentSeason}`;
+    let opening = worldSeasonOpeningRef.current;
+    if (opening?.key !== key) {
+      opening = { key, yearAtOpen: currentYear, settled: false };
+      worldSeasonOpeningRef.current = opening;
+      if (explicitSeasonAtLoadRef.current) {
+        explicitSeasonAtLoadRef.current = false;
+        opening.settled = true;
+        return;
+      }
+    }
+    if (opening.settled) return;
+    if (currentYear !== opening.yearAtOpen) {
+      opening.settled = true;
+      return;
+    }
+    const year = worldViewingSeasonEndYear(
+      capProjections,
+      teamCapSheet,
+      worldCurrentSeason
+    );
+    if (year === null) return;
+    opening.settled = true;
+    if (year !== currentYear) setCurrentYear(year);
+  }, [worldId, teamCapSheet, worldCurrentSeason, currentYear]);
   const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(
     null
   );
