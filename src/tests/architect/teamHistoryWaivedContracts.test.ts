@@ -31,6 +31,35 @@ describe('resolveWaivedContractDisplayEntries', () => {
     ]);
   });
 
+  it('marks retained opening debt and preserves a later zero-dead-money waiver of the same player', () => {
+    const opening = {
+      playerId: 'p1',
+      playerName: 'Example Player',
+      amountByYear: [{ season: '2026-27', amount: 2_500_000 }],
+      notes: 'Dead cap reason: previous contract',
+    };
+    const capSheet = { deadCap: [opening] };
+    expect(resolveWaivedContractDisplayEntries(capSheet)).toMatchObject([
+      { id: 'p1', openingObligation: true, deadCap: { '2027': 2_500_000 } },
+    ]);
+
+    const savedWaiver = {
+      mutationType: 'waivePlayer',
+      occurredAt: '2027-01-15T15:00:00.000Z',
+      mutationMetadata: { playerId: 'p1', playerName: 'Example Player' },
+    };
+    const entries = resolveWaivedContractDisplayEntries(capSheet, [savedWaiver]);
+    expect(entries).toHaveLength(2);
+    expect(entries[1].openingObligation).toBeUndefined();
+    expect(entries[1].deadCap).toEqual({});
+    expect(resolveWaivedContractDisplayEntries({
+      deadCap: [
+        { ...opening, notes: 'Manual Adjustment' },
+        { ...opening, waiveDate: '2027-01-15T15:00:00.000Z' },
+      ],
+    }).map((entry) => entry.openingObligation)).toEqual([undefined, undefined]);
+  });
+
   it('returns an empty list when neither ledger has entries', () => {
     expect(resolveWaivedContractDisplayEntries({})).toEqual([]);
     expect(

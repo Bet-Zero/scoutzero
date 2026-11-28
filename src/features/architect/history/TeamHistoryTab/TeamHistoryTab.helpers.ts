@@ -425,12 +425,20 @@ const toWaivedContractEntryFromDeadCap = (
     stretched = false;
   }
 
+  // The source-team stager records carried debt this way. The entry survives
+  // saved moves even when the hydrated base-team view is reconstructed.
+  const openingObligation =
+    !record.governedLifecycle &&
+    !record.waiveDate &&
+    typeof record.notes === 'string' &&
+    record.notes.startsWith('Dead cap reason: ');
   return {
     id: playerId,
     name: playerName || playerId || 'Player',
     waivedOn: formatWaiveDate(record.waiveDate),
     stretched,
     deadCap: deadCapByYear,
+    ...(openingObligation ? { openingObligation: true } : {}),
   };
 };
 
@@ -530,7 +538,10 @@ export const resolveWaivedContractDisplayEntries = (
       Boolean(entry)
     );
 
-  const seenKeys = new Set(canonicalEntries.flatMap(entryDedupeKeys));
+  // A prior obligation can share a player with a new zero-dead-money waiver.
+  const seenKeys = new Set(
+    canonicalEntries.filter((entry) => !entry.openingObligation).flatMap(entryDedupeKeys)
+  );
 
   const eventEntries: TeamHistoryWaivedContractEntry[] = [];
   for (const event of Array.isArray(committedWorldEvents)
@@ -543,6 +554,7 @@ export const resolveWaivedContractDisplayEntries = (
     keys.forEach((key) => seenKeys.add(key));
     eventEntries.push(entry);
   }
+  canonicalEntries.flatMap(entryDedupeKeys).forEach((key) => seenKeys.add(key));
 
   const legacyEntries = (
     Array.isArray(teamCapSheet.waivedContracts)
