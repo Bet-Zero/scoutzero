@@ -21,6 +21,7 @@
 import { PHONE_MEDIA_QUERY, useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useState,
@@ -376,11 +377,11 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       writeCollapsed(desktopCollapsed);
     }, [desktopCollapsed]);
 
-    const setCollapsed = (value: boolean) => {
+    const setCollapsed = useCallback((value: boolean) => {
       if (isPhone) setPhoneExpanded(!value);
       else setDesktopCollapsed(value);
-    };
-    useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), [isPhone]);
+    }, [isPhone]);
+    useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), [setCollapsed]);
 
     const [assetsOpen, setAssetsOpen] = useState(false);
 
