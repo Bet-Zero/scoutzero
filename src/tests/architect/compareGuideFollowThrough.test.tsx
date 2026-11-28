@@ -23,6 +23,7 @@ const compareViewModel = {
   rosterChangedPlayers: [],
   capTotalDelta: null,
   taxApronPostureDelta: null,
+  exceptionDelta: { status: 'deferred', reason: 'No recorded trade exception changes.' },
   unavailableSummary: [],
   isMultiSeasonComparison: false,
 } as unknown as Parameters<typeof ComparisonSection>[0]['viewModel'];

@@ -283,20 +283,17 @@ export function buildComparisonDeferredAnswer(
     })
   );
 
-  // Always include the static exception deferral.
-  deferredReasons.push({
-    reason: `exceptionDelta: ${vm.exceptionDelta.reason}`,
-    authority: 'deferred',
-  });
-
   const chips: Stage4EvidenceChip[] = vm.unavailableSummary.map((entry) => ({
     label: entry.field,
     authority: 'deferred',
   }));
-  chips.push({
-    label: 'exceptionDelta',
-    authority: 'deferred',
-  });
+  if (vm.exceptionDelta.status === 'deferred') {
+    deferredReasons.push({
+      reason: `exceptionDelta: ${vm.exceptionDelta.reason}`,
+      authority: 'deferred',
+    });
+    chips.push({ label: 'exceptionDelta', authority: 'deferred' });
+  }
 
   const shortAnswer = `${deferredReasons.length} comparison field${deferredReasons.length === 1 ? '' : 's'} are deferred or unavailable.`;
 
