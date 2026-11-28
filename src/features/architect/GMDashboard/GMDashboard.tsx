@@ -607,6 +607,8 @@ export const GMDashboard = () => {
     baselineSeason: null,
     currentSeason: worldCurrentSeason ?? null,
     currentRosterPlayerIds: comparisonRosterPlayerIds,
+    exceptionHistory: teamCapSheet?.exceptionHistory,
+    exceptionBalances: teamCapSheet?.exceptions?.tpe,
     refreshKey: postActionReceipt.generation,
     resolvePlayerDisplayName: resolveFocusedPlayerLabel,
   });

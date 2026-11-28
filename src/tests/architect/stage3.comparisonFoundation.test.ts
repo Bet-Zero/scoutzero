@@ -440,14 +440,12 @@ describe('deriveComparisonViewModel', () => {
     expect(fields).toContain('draftAssetDelta');
   });
 
-  it('exception delta is always deferred', () => {
+  it('defers exception changes without saved records', () => {
     const vm = deriveComparisonViewModel({
       ...baseInput,
       committedEventRows: [],
     });
-    expect(vm.exceptionDelta.status).toBe('deferred');
-    expect(typeof vm.exceptionDelta.reason).toBe('string');
-    expect(vm.exceptionDelta.reason.length).toBeGreaterThan(0);
+    expect(vm.exceptionDelta).toMatchObject({ status: 'deferred', reason: expect.any(String) });
   });
 
   it('scope has correct authority label', () => {

@@ -12,7 +12,7 @@
 import { useCallback, useMemo } from 'react';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import { normalizeWorldEventsForTeamHistory } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
-import { deriveComparisonViewModel } from '@/features/architect/comparison/deriveComparisonViewModel';
+import { deriveComparisonViewModel, type DeriveComparisonViewModelInput } from '@/features/architect/comparison/deriveComparisonViewModel';
 import type { Stage3ComparisonViewModel } from '@/features/architect/comparison/types';
 
 const COMPARISON_EVENT_LIMIT = 50;
@@ -26,6 +26,8 @@ export interface UseArchitectComparisonViewModelArgs {
   baselineSeason: string | null;
   currentSeason: string | null;
   currentRosterPlayerIds: string[];
+  exceptionHistory?: DeriveComparisonViewModelInput['exceptionHistory'];
+  exceptionBalances?: DeriveComparisonViewModelInput['exceptionBalances'];
   worldModifiedTeams?: string[] | null;
   refreshKey?: number;
   /** Optional player id → display name resolver (e.g. playersMap-backed). */
@@ -45,6 +47,8 @@ export function useArchitectComparisonViewModel({
   baselineSeason,
   currentSeason,
   currentRosterPlayerIds,
+  exceptionHistory,
+  exceptionBalances,
   worldModifiedTeams,
   refreshKey = 0,
   resolvePlayerDisplayName = null,
@@ -113,6 +117,8 @@ export function useArchitectComparisonViewModel({
       currentSeason,
       committedEventRows: normalizedEvents,
       currentRosterPlayerIds,
+  exceptionHistory,
+  exceptionBalances,
       worldModifiedTeams,
       resolvePlayerDisplayName: resolveDisplayName,
     });
@@ -124,6 +130,8 @@ export function useArchitectComparisonViewModel({
     currentSeason,
     normalizedEvents,
     currentRosterPlayerIds,
+  exceptionHistory,
+  exceptionBalances,
     worldModifiedTeams,
     resolveDisplayName,
   ]);

@@ -22,6 +22,7 @@ import { detectSeasonMismatch } from './seasonMismatch';
 import { deriveDraftAssetDelta } from './deriveDraftAssetDelta';
 import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
+import { deriveExceptionDelta } from './exceptionDelta';
 
 type GenericRecord = Record<string, unknown>;
 
@@ -29,6 +30,7 @@ export type ComparisonEventRow = {
   raw?: GenericRecord;
   id: string;
   eventId: string | null;
+  operationId?: string | null;
   occurredAt: string | null;
   mutationType: string | null;
   category?: string | null;
@@ -53,6 +55,8 @@ export interface DeriveComparisonViewModelInput {
    * Caller derives this from teamCapSheet.players using their ID normalization.
    */
   currentRosterPlayerIds: string[];
+  exceptionHistory?: Parameters<typeof deriveExceptionDelta>[0]['history'];
+  exceptionBalances?: Parameters<typeof deriveExceptionDelta>[0]['balances'];
   /** From WorldMetadata.modifiedTeams. Best-effort; may be incomplete. */
   worldModifiedTeams?: string[] | null;
   /**
@@ -62,12 +66,6 @@ export interface DeriveComparisonViewModelInput {
    */
   resolvePlayerDisplayName?: ((playerId: string) => string | null) | null;
 }
-
-const EXCEPTION_DELTA_DEFERRED = {
-  status: 'deferred' as const,
-  reason:
-    'Exception changes cannot be compared reliably yet after multiple moves.',
-};
 
 const DRAFT_UNAVAILABLE = {
   field: 'draftAssetDelta',
@@ -272,7 +270,14 @@ export function deriveComparisonViewModel(
     rosterChangedPlayers,
     capTotalDelta,
     taxApronPostureDelta,
-    exceptionDelta: EXCEPTION_DELTA_DEFERRED,
+    exceptionDelta: deriveExceptionDelta({
+      worldId,
+      teamCode,
+      season: currentSeason,
+      moves: sorted,
+      history: input.exceptionHistory,
+      balances: input.exceptionBalances,
+    }),
     changedTeams: {
       teamCodes: Array.from(changedTeamCodesSet),
       authority: 'committed-world / event-derived',

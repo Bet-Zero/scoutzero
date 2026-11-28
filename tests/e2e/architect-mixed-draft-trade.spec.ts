@@ -699,6 +699,16 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
       new RegExp(i ? 'Anthony Black' : 'Tre Jones', 'i')
     );
+    if (team === 'ORL') {
+      const exceptions = page.getByTestId('comparison-trade-exceptions');
+      await expect(exceptions).toContainText('Created $8,220,280.00');
+      await expect(exceptions).toContainText('Used $8,000,000.00');
+      await expect(exceptions).toContainText('Remaining $220,280.00');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(exceptions).toBeVisible();
+      await capture(page, 'ORL-compare-phone');
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
     await capture(page, `${team}-compare`);
     const expand = page.getByRole('button', { name: 'Expand activity rail' });
     if (await expand.isVisible()) await expand.click();
