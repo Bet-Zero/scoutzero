@@ -38,6 +38,7 @@ export interface UseArchitectComparisonViewModelResult {
   status: ComparisonViewModelStatus;
   viewModel: Stage3ComparisonViewModel | null;
   error: string | null;
+  earlierMoves?: { load: () => Promise<void>; loading: boolean };
 }
 
 export function useArchitectComparisonViewModel({
@@ -59,6 +60,9 @@ export function useArchitectComparisonViewModel({
     events: rawEvents,
     loading,
     error,
+    hasMore,
+    loadMore,
+    loadingMore,
   } = useWorldTeamEvents({
     worldId: worldId ?? null,
     teamCode: teamCode ?? null,
@@ -116,9 +120,10 @@ export function useArchitectComparisonViewModel({
       baselineSeason,
       currentSeason,
       committedEventRows: normalizedEvents,
+      historyIncomplete: hasMore,
       currentRosterPlayerIds,
-  exceptionHistory,
-  exceptionBalances,
+      exceptionHistory,
+      exceptionBalances,
       worldModifiedTeams,
       resolvePlayerDisplayName: resolveDisplayName,
     });
@@ -129,9 +134,10 @@ export function useArchitectComparisonViewModel({
     baselineSeason,
     currentSeason,
     normalizedEvents,
+    hasMore,
     currentRosterPlayerIds,
-  exceptionHistory,
-  exceptionBalances,
+    exceptionHistory,
+    exceptionBalances,
     worldModifiedTeams,
     resolveDisplayName,
   ]);
@@ -145,5 +151,10 @@ export function useArchitectComparisonViewModel({
   if (error && normalizedEvents.length === 0) {
     return { status: 'error', viewModel: null, error };
   }
-  return { status: 'available', viewModel, error: null };
+  return {
+    status: 'available',
+    viewModel,
+    error,
+    earlierMoves: loadMore ? { load: loadMore, loading: loadingMore } : undefined,
+  };
 }

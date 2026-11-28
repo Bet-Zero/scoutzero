@@ -39,6 +39,7 @@ describe('useWorldTeamEvents guardrails', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    firestoreMocks.getDocs.mockReset();
 
     firestoreMocks.collection.mockReturnValue({ kind: 'collection' });
     firestoreMocks.where.mockImplementation((field, op, value) => ({
@@ -66,6 +67,39 @@ describe('useWorldTeamEvents guardrails', () => {
         constraints,
       })
     );
+  });
+
+  it('ignores an earlier page that finishes after switching worlds', async () => {
+    const parent = makeDoc('parent-latest', { occurredAt: '2026-11-14T17:00:00.000Z' });
+    const parentMid = makeDoc('parent-mid', { occurredAt: '2026-11-14T16:30:00.000Z' });
+    const parentOlder = makeDoc('parent-earlier', { occurredAt: '2026-11-14T16:00:00.000Z' });
+    const child = makeDoc('child-latest', { occurredAt: '2026-11-14T18:00:00.000Z' });
+    let releaseParentPage: (result: { docs: ReturnType<typeof makeDoc>[] }) => void;
+    const parentPage = new Promise<{ docs: ReturnType<typeof makeDoc>[] }>((resolve) => {
+      releaseParentPage = resolve;
+    });
+    firestoreMocks.getDocs
+      .mockResolvedValueOnce({ docs: [parent, parentMid, parentOlder] })
+      .mockResolvedValueOnce({ docs: [] })
+      .mockImplementationOnce(() => parentPage)
+      .mockResolvedValueOnce({ docs: [child] })
+      .mockResolvedValueOnce({ docs: [] });
+    const { result, rerender } = renderHook(
+      ({ worldId }) => useWorldTeamEvents({ worldId, teamCode: 'LAL', limit: 2 }),
+      { initialProps: { worldId: 'parent' } }
+    );
+    await waitFor(() => expect(result.current.events.map((event) => event.id)).toEqual(['parent-latest', 'parent-mid']));
+    let pendingPage: Promise<void> | undefined;
+    act(() => { pendingPage = result.current.loadMore?.(); });
+    await waitFor(() => expect(result.current.loadingMore).toBe(true));
+    rerender({ worldId: 'child' });
+    await waitFor(() => expect(result.current.events.map((event) => event.id)).toEqual(['child-latest']));
+    await act(async () => {
+      releaseParentPage({ docs: [parentOlder] });
+      await pendingPage;
+    });
+    expect(result.current.events.map((event) => event.id)).toEqual(['child-latest']);
+    expect(result.current.hasMore).toBe(false);
   });
 
   it('merges canonical and legacy rows into one paginated feed, reuses both cursors, and preserves newest-first dedupe when pages overlap', async () => {

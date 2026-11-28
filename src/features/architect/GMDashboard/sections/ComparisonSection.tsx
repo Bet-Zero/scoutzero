@@ -31,6 +31,7 @@ interface ComparisonSectionProps {
   status: ComparisonViewModelStatus;
   viewModel: Stage3ComparisonViewModel | null;
   error?: string | null;
+  earlierMoves?: { load: () => Promise<void>; loading: boolean };
   onNavigateToHistory?: (() => void) | null;
   onNavigateToCapSheet?: (() => void) | null;
   onNavigateToRoster?: (() => void) | null;
@@ -305,6 +306,7 @@ export const ComparisonSection = ({
   status,
   viewModel,
   error,
+  earlierMoves,
   onNavigateToHistory,
   onNavigateToCapSheet,
   onNavigateToRoster,
@@ -416,7 +418,7 @@ export const ComparisonSection = ({
             <span className="font-semibold text-cockpit-text-secondary">
               {committedEventCount}
             </span>{' '}
-            saved move{committedEventCount !== 1 ? 's' : ''}
+            {earlierMoves ? 'most recent ' : ''}saved move{committedEventCount !== 1 ? 's' : ''}
           </span>
           {changedTeams.teamCodes.length > 0 && (
             <span
@@ -437,6 +439,20 @@ export const ComparisonSection = ({
             </span>
           )}
         </div>
+
+        {earlierMoves && (
+          <div className="text-xs text-cockpit-text-muted">
+            <button
+              type="button"
+              className="rounded border border-cockpit-edge bg-cockpit-raised px-2.5 py-1 text-cockpit-text-secondary disabled:opacity-50"
+              disabled={earlierMoves.loading}
+              onClick={() => void earlierMoves.load()}
+            >
+              {earlierMoves.loading ? 'Loading earlier moves…' : 'Load earlier moves'}
+            </button>
+            {error && <p role="status">Earlier saved moves could not load. Try again.</p>}
+          </div>
+        )}
 
         {/* Navigation — read-only deep links to existing surfaces */}
         <div
