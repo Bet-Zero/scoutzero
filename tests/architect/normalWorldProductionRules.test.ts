@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   assertFails,
   assertSucceeds,
@@ -17,6 +17,9 @@ import {
   reserveWorldInitialization,
   WORLD_WORK_LIMITS,
 } from '../../functions/src/architect/worldAdmission';
+
+// Run against the emulator's real client SDK rather than the Node-lane default mock.
+vi.unmock('firebase/firestore');
 
 const fixture = fileURLToPath(new URL('../fixtures/architect/normalWorldProductionBaseline.rules', import.meta.url));
 const patchPath = fileURLToPath(new URL('../../docs/operations/ARCHITECT_WORLD_RULES.patch', import.meta.url));
