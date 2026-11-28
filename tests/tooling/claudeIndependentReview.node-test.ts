@@ -432,7 +432,8 @@ test('Claude-readable checkouts never persist the GitHub token', () => {
 function runRequestGuard(
   permission: string,
   actor = 'reviewer',
-  apiFailure = false
+  apiFailure = false,
+  request = `/claude-independent-review ${candidate} ${base}`
 ) {
   const guard = workflow
     .split('      - name: Validate immutable review request')[1]
@@ -473,7 +474,7 @@ else:
         PR_NUMBER: '543',
         CANDIDATE_SHA: candidate,
         BASE_SHA: base,
-        REQUEST_BODY: `/claude-independent-review ${candidate} ${base}\nReview this exact candidate.`,
+        REQUEST_BODY: `${request}\nReview this candidate.`,
         REQUEST_ACTOR: actor,
         ACTOR_PERMISSION: permission,
         API_FAILURE: String(apiFailure),
@@ -510,6 +511,27 @@ test('Token-free action mode admits only an already-verified repository writer',
     assert.equal(result.reason, 'actor-not-writer');
   }
   assert.equal(runRequestGuard('write', 'reviewer', true).valid, 'false');
+  // A bare request reviews the live head and base; partial, stale or extra
+  // arguments are still rejected before the credential is used.
+  const bare = runRequestGuard(
+    'write',
+    'reviewer',
+    false,
+    '/claude-independent-review'
+  );
+  assert.equal(bare.valid, 'true');
+  assert.equal(bare.candidate_sha, candidate);
+  assert.equal(bare.base_sha, base);
+  for (const [request, reason] of [
+    [`/claude-independent-review ${candidate}`, 'malformed-request'],
+    [`/claude-independent-review ${'c'.repeat(40)} ${base}`, 'head-mismatch'],
+    [`/claude-independent-review ${candidate} ${base} extra`, 'malformed-request'],
+    ['/claude-independent-reviewer', 'malformed-request'],
+  ]) {
+    const result = runRequestGuard('write', 'reviewer', false, request);
+    assert.equal(result.valid, 'false');
+    assert.equal(result.reason, reason);
+  }
   for (const actor of ['*', 'reviewer,other', 'a\nvalid=true'])
     assert.equal(runRequestGuard('write', actor).valid, 'false');
   assert.match(

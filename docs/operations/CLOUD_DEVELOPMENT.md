@@ -614,7 +614,6 @@ npm run test:cloud-dev
 npm run cloud:typecheck
 npm run typecheck
 npm run validate:project
-npm run docs:guardrails
 ```
 
 Use feature-scoped tests from AGENTS.md for application changes. CI runs cloud
