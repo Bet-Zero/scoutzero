@@ -126,7 +126,7 @@ test('normal accounts create, save a move, reload, manage and isolate a current 
   await expect(page.getByTestId('team-history-section-timeline').getByRole('button', { name: /Trade Executed/ })).toBeVisible();
   await openWorlds();
   await page.getByTitle('World actions').click();
-  await page.getByTitle('World actions').locator('..').screenshot({ path: testInfo.outputPath('world-actions-desktop.png') });
+  await page.getByRole('button', { name: 'Rename', exact: true }).locator('..').screenshot({ path: testInfo.outputPath('world-actions-desktop.png') });
   await page.getByRole('button', { name: 'Rename', exact: true }).click();
   await page.getByLabel('World Name', { exact: true }).fill('Renamed simulation');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -149,6 +149,7 @@ test('normal accounts create, save a move, reload, manage and isolate a current 
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#world-selector').selectOption(worldId);
   await expect(menu).toContainText('Renamed simulation');
+  await openWorlds();
   await page.getByTitle('World actions').click();
   await page.getByRole('button', { name: 'Delete Permanently', exact: true }).click();
   await page.locator('#delete-confirm').fill('DELETE');
