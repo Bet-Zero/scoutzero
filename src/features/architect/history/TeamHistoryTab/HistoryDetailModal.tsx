@@ -178,7 +178,8 @@ const readSalaryBook = (
   field: 'teamSalary' | 'apronTeamSalary' | 'taxSalary'
 ): number | null => {
   const teamTotals = asRecord(totalsByTeam?.[teamCode]);
-  const value = Number(teamTotals?.[field]);
+  if (teamTotals?.[field] == null) return null;
+  const value = Number(teamTotals[field]);
 
   return Number.isFinite(value) ? value : null;
 };
