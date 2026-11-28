@@ -39,7 +39,7 @@ export const Workbench = ({ activeTab, rooms }: WorkbenchProps) => {
 
   return (
     <main
-      className="relative flex flex-1 min-h-0 flex-col overflow-hidden"
+      className="relative flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden"
       data-testid="cockpit-workbench"
       data-active-tab={activeTab}
     >
