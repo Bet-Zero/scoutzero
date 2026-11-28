@@ -230,14 +230,14 @@ export function useTradeMachineInit({
             console.log(
               '[init payroll SSOT]',
               teamObj.nickname || teamObj.teamName || teamObj.id,
-            {
-              year: yearKey,
-              baseline,
-              dead,
-              teamTotalSalary: teamObj.teamTotalSalary,
-              projectedSalary: teamObj.projectedSalary,
-            }
-          );
+              {
+                year: yearKey,
+                baseline,
+                dead,
+                teamTotalSalary: teamObj.teamTotalSalary,
+                projectedSalary: teamObj.projectedSalary,
+              }
+            );
 
           if (cancelled) return;
           // Record completion only after the async initialization survives its
