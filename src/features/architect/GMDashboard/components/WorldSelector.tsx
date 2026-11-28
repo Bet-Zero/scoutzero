@@ -12,6 +12,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ChangeEvent,
   type ReactNode,
 } from 'react';
@@ -32,6 +33,9 @@ import {
   updateWorldMetadata,
   getWorldMetadata,
   purgeWorld,
+  recoverPendingWorldCreation,
+  discardPendingWorldCreation,
+  readPendingWorldCreation,
 } from '@/features/architect/utils/worldManager';
 import { DeleteWorldModal } from './DeleteWorldModal';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
@@ -48,6 +52,7 @@ type WorldSummaryLike = {
   worldName?: string | null;
   description?: string | null;
   isArchived?: boolean;
+  worldLifecycle?: { state: 'deleting' };
   contractBaselineVersion?: number;
   contractSourceRelease?: {
     releaseId: string;
@@ -135,13 +140,27 @@ export function WorldSelector({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteWorldId, setDeleteWorldId] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   const [newWorldName, setNewWorldName] = useState('');
   const [newWorldDescription, setNewWorldDescription] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasPendingCreation, setHasPendingCreation] = useState(false);
+  const currentWorldId = useRef(worldId);
+  currentWorldId.current = worldId;
+  const currentUserId = useRef(userId);
+  currentUserId.current = userId;
+  const isMounted = useRef(false);
+  const recoveryGeneration = useRef(0);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      recoveryGeneration.current += 1;
+    };
+  }, [userId]);
 
   const loadWorlds = useCallback(async () => {
     if (!userId) {
@@ -158,7 +177,7 @@ export function WorldSelector({
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         const userWorlds = (await listUserWorlds(userId, {
-          includeArchived: false,
+          includeArchived: true,
         })) as WorldSummaryLike[];
         setWorlds(userWorlds);
         setIsLoading(false);
@@ -189,7 +208,7 @@ export function WorldSelector({
         setShowCreateModal(false);
         setShowBranchModal(false);
         setShowRenameModal(false);
-        setShowDeleteModal(false);
+        setDeleteWorldId(null);
       }
     };
 
@@ -230,10 +249,107 @@ export function WorldSelector({
     [confirmContextExit, onWorldChange, setActiveWorld, worldId]
   );
 
+  const currentSelectionAction = useRef(commitActiveWorldSelection);
+  currentSelectionAction.current = commitActiveWorldSelection;
+
+  // Keep the pending request until the existing active-world owner actually
+  // reflects the selection, including a response-to-selection page reload.
+  useEffect(() => {
+    if (
+      !userId ||
+      !worldId ||
+      import.meta.env.VITE_SCOUTZERO_WORLD_HTTP !== 'true'
+    )
+      return;
+    try {
+      const pending = readPendingWorldCreation(userId);
+      setHasPendingCreation(Boolean(pending && pending.worldId !== worldId));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, [userId, worldId]);
+
+  const retryPendingCreation = useCallback(
+    async (isCurrent: () => boolean = () => true) => {
+      if (!userId || import.meta.env.VITE_SCOUTZERO_WORLD_HTTP !== 'true')
+        return;
+      const generation = recoveryGeneration.current;
+      const stillCurrent = () =>
+        isMounted.current &&
+        recoveryGeneration.current === generation &&
+        isCurrent() &&
+        currentUserId.current === userId;
+      try {
+        const pending = readPendingWorldCreation(userId);
+        if (!pending) return;
+        setHasPendingCreation(true);
+        setNewWorldName(pending.worldName);
+        setNewWorldDescription(pending.description);
+        setIsSubmitting(true);
+        setError('');
+        const recovered = await recoverPendingWorldCreation(userId);
+        if (!stillCurrent() || !recovered) return;
+        await loadWorlds();
+        if (!stillCurrent()) return;
+        if (currentSelectionAction.current(recovered.worldId, 'create-world')) {
+          setShowCreateModal(false);
+        }
+      } catch (err) {
+        if (stillCurrent()) setError((err as Error).message);
+      } finally {
+        if (stillCurrent()) setIsSubmitting(false);
+      }
+    },
+    [userId, loadWorlds, commitActiveWorldSelection]
+  );
+  const discardPendingCreation = useCallback(async () => {
+    if (
+      !userId ||
+      !window.confirm(
+        'Discard this unfinished creation? A saved world will not be deleted.'
+      )
+    )
+      return;
+    const generation = recoveryGeneration.current;
+    const stillCurrent = () =>
+      isMounted.current &&
+      recoveryGeneration.current === generation &&
+      currentUserId.current === userId;
+    setIsSubmitting(true);
+    try {
+      await discardPendingWorldCreation(userId);
+      if (!stillCurrent()) return;
+      setHasPendingCreation(false);
+      setError('');
+      setNewWorldName('');
+      setNewWorldDescription('');
+      setShowCreateModal(false);
+    } catch (err) {
+      if (stillCurrent()) setError((err as Error).message);
+    } finally {
+      if (stillCurrent()) setIsSubmitting(false);
+    }
+  }, [userId]);
+  const recoveryAction = useRef(retryPendingCreation);
+  recoveryAction.current = retryPendingCreation;
+  useEffect(() => {
+    if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP !== 'true') return;
+    if (activeWorldOwner.hasRestoredActiveWorld === false) return;
+    let current = true;
+    setHasPendingCreation(false);
+    setIsSubmitting(false);
+    // One automatic reconciliation per mount/account. Ordinary rerenders must
+    // not turn a pending/rate-limited response into an automatic retry loop.
+    void recoveryAction.current(() => current);
+    return () => {
+      current = false;
+    };
+  }, [userId, activeWorldOwner.hasRestoredActiveWorld]);
+
   const clearActiveWorldSelection = useCallback(
     (options?: { skipGuard?: boolean }) => {
       commitActiveWorldSelection(null, 'switch-world', options);
-      setShowDeleteModal(false);
+      setDeleteWorldId(null);
       setDeleteConfirmText('');
     },
     [commitActiveWorldSelection]
@@ -262,6 +378,10 @@ export function WorldSelector({
   );
 
   const handleCreateWorld = useCallback(async () => {
+    if (hasPendingCreation) {
+      await retryPendingCreation();
+      return;
+    }
     if (!userId || !newWorldName.trim()) return;
     if (!confirmContextExit('create-world')) return;
 
@@ -275,7 +395,9 @@ export function WorldSelector({
         userId,
       })) as CreateWorldResultLike;
 
+      if (currentUserId.current !== userId) return;
       await loadWorlds();
+      if (currentUserId.current !== userId) return;
       commitActiveWorldSelection(newWorldId, 'create-world', {
         skipGuard: true,
       });
@@ -287,6 +409,13 @@ export function WorldSelector({
       const errorLike = err as ErrorLike;
       console.error('Failed to create world:', err);
       setError(errorLike.message || 'Failed to create world');
+      if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true') {
+        try {
+          setHasPendingCreation(Boolean(readPendingWorldCreation(userId)));
+        } catch {
+          /* Retain the original failure; never discard an unreadable request. */
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -297,6 +426,8 @@ export function WorldSelector({
     confirmContextExit,
     commitActiveWorldSelection,
     loadWorlds,
+    hasPendingCreation,
+    retryPendingCreation,
   ]);
 
   const handleBranchWorld = useCallback(async () => {
@@ -402,26 +533,48 @@ export function WorldSelector({
     worlds,
   ]);
 
-  const handleDeleteWorld = useCallback(async () => {
-    if (!worldId) return;
+  const handleRestoreWorld = async (id: string) => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await updateWorldMetadata(id, { isArchived: false });
+      await loadWorlds();
+    } catch {
+      setError('Failed to restore world.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const currentWorld = worlds.find((world) => world.worldId === worldId);
-    const worldName = currentWorld?.worldName || worldId;
+  const handleDeleteWorld = useCallback(async () => {
+    if (!deleteWorldId) return;
+
+    const currentWorld = worlds.find((world) => world.worldId === deleteWorldId);
+    const worldName = currentWorld?.worldName || deleteWorldId;
 
     if (deleteConfirmText !== 'DELETE' && deleteConfirmText !== worldName) {
       setError('Please type DELETE or the world name to confirm');
       return;
     }
-    if (!confirmContextExit('delete-world')) return;
+    if (deleteWorldId === worldId && !confirmContextExit('delete-world')) return;
 
+    const generation = recoveryGeneration.current;
+    const stillCurrent = () =>
+      isMounted.current &&
+      recoveryGeneration.current === generation &&
+      currentUserId.current === userId;
     setIsSubmitting(true);
     setError('');
 
     try {
-      const result = (await purgeWorld(worldId)) as PurgeResultLike;
+      const result = (await purgeWorld(deleteWorldId)) as PurgeResultLike;
 
+      if (!stillCurrent()) return;
       if (result.ok) {
-        clearActiveWorldSelection({ skipGuard: true });
+        if (currentWorldId.current === deleteWorldId)
+          currentSelectionAction.current(null, 'delete-world');
+        setDeleteWorldId(null);
+        setDeleteConfirmText('');
         await loadWorlds();
       } else if (result.queued) {
         setError(result.message || '');
@@ -431,22 +584,24 @@ export function WorldSelector({
     } catch (err) {
       const errorLike = err as ErrorLike;
       console.error('Failed to delete world:', err);
-      setError(errorLike.message || 'Failed to delete world');
+      if (stillCurrent())
+        setError(errorLike.message || 'Failed to delete world');
     } finally {
-      setIsSubmitting(false);
+      if (stillCurrent()) setIsSubmitting(false);
     }
   }, [
     worldId,
+    deleteWorldId,
+    userId,
     worlds,
     deleteConfirmText,
-    clearActiveWorldSelection,
     confirmContextExit,
     loadWorlds,
   ]);
 
-  const openDeleteModal = useCallback(() => {
+  const openDeleteModal = useCallback((id: string) => {
     setDeleteConfirmText('');
-    setShowDeleteModal(true);
+    setDeleteWorldId(id);
     setShowActionsMenu(false);
   }, []);
 
@@ -492,12 +647,13 @@ export function WorldSelector({
   }
 
   const currentWorld = worlds.find((world) => world.worldId === worldId);
+  const managedWorlds = worlds.filter((world) => world.isArchived || world.worldLifecycle);
   const currentContractCompatibility = currentWorld
     ? resolveContractBaselineWorldCompatibility(currentWorld)
     : null;
 
   return (
-    <div className="flex items-center gap-2 relative">
+    <div className="relative flex flex-wrap items-center gap-2">
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-1">
           <label htmlFor="world-selector" className="text-xs text-white/70">
@@ -514,13 +670,13 @@ export function WorldSelector({
           </span>
           <select
             id="world-selector"
-            value={worldId || ''}
+            value={worldId && !currentWorld?.worldLifecycle ? worldId : ''}
             onChange={handleWorldSelect}
             className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 min-w-[140px]"
             disabled={isSubmitting}
           >
             <option value="">{SANDBOX_OPTION_LABEL}</option>
-            {worlds.map((world) => (
+            {worlds.filter((world) => !world.isArchived && !world.worldLifecycle).map((world) => (
               <option key={world.worldId} value={world.worldId}>
                 {world.worldName || world.worldId}
                 {!resolveContractBaselineWorldCompatibility(world).compatible
@@ -603,13 +759,13 @@ export function WorldSelector({
             setShowCreateModal(true);
           }}
           className="px-2 py-1 text-xs bg-green-600/80 hover:bg-green-600 text-white rounded transition-colors"
-          disabled={isSubmitting}
+          disabled={isSubmitting || hasPendingCreation}
           title="Create new world"
         >
           + New
         </button>
 
-        {isWorldBacked && (
+        {isWorldBacked && worldId && !currentWorld?.worldLifecycle && (
           <div className="relative">
             <button
               type="button"
@@ -651,7 +807,7 @@ export function WorldSelector({
                 </button>
                 <button
                   type="button"
-                  onClick={openDeleteModal}
+                  onClick={() => openDeleteModal(worldId)}
                   className="w-full px-3 py-2 text-xs text-left text-red-500 hover:bg-red-900/20 transition-colors font-medium"
                 >
                   Delete Permanently
@@ -662,23 +818,76 @@ export function WorldSelector({
         )}
       </div>
 
+      {managedWorlds.length > 0 && (
+        <details className="relative text-xs text-white">
+          <summary className="cursor-pointer">Archived and unfinished</summary>
+          <ul className="absolute right-0 z-50 mt-1 w-56 rounded border border-white/10 bg-[#1a1a1a] p-2">
+            {managedWorlds.map((world) => (
+              <li key={world.worldId} className="mb-2 last:mb-0">
+                <div className="break-words">{world.worldName || 'Saved world'}</div>
+                {!world.worldLifecycle && (
+                  <button type="button" className="mr-3 text-blue-300 underline"
+                    disabled={isSubmitting} onClick={() => void handleRestoreWorld(world.worldId)}>
+                    Restore
+                  </button>
+                )}
+                <button type="button" className="text-red-300 underline"
+                  disabled={isSubmitting} onClick={() => openDeleteModal(world.worldId)}>
+                  {world.worldLifecycle ? 'Resume deletion' : 'Delete permanently'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {/* Toolbar error: only when no name-entry modal is open (those show their
           own inline error so a failure isn't hidden behind the dialog). */}
       {error && !showCreateModal && !showBranchModal && !showRenameModal && (
         <span className="text-xs text-red-400 ml-2">{error}</span>
       )}
+      {hasPendingCreation && !showCreateModal && (
+        <button
+          type="button"
+          disabled={isSubmitting}
+          className="text-xs text-blue-300 underline"
+          onClick={() => void retryPendingCreation()}
+        >
+          Retry world creation
+        </button>
+      )}
 
+      {hasPendingCreation && !showCreateModal && (
+        <button
+          type="button"
+          disabled={isSubmitting}
+          className="text-xs text-red-300 underline"
+          onClick={() => void discardPendingCreation()}
+        >
+          Discard failed creation
+        </button>
+      )}
       {showCreateModal && (
         <WorldModal
           title="Create New World"
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateWorld}
           isSubmitting={isSubmitting}
-          submitLabel="Create"
+          submitLabel={hasPendingCreation ? 'Retry creation' : 'Create'}
           error={error}
           submitDisabled={!newWorldName.trim()}
         >
           <div className="space-y-3">
+            {hasPendingCreation && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                className="text-xs text-red-300 underline"
+                onClick={() => void discardPendingCreation()}
+              >
+                Discard failed creation
+              </button>
+            )}
             <div>
               <label
                 htmlFor="create-world-name"
@@ -688,6 +897,7 @@ export function WorldSelector({
               </label>
               <input
                 id="create-world-name"
+                disabled={hasPendingCreation}
                 type="text"
                 value={newWorldName}
                 onChange={(event) => setNewWorldName(event.target.value)}
@@ -704,6 +914,7 @@ export function WorldSelector({
               </label>
               <textarea
                 id="create-world-description"
+                disabled={hasPendingCreation}
                 value={newWorldDescription}
                 onChange={(event) => setNewWorldDescription(event.target.value)}
                 className="w-full bg-[#0d0d0d] border border-white/10 rounded px-2 py-1 text-sm text-white resize-none"
@@ -815,16 +1026,16 @@ export function WorldSelector({
         </WorldModal>
       )}
 
-      {showDeleteModal && (
+      {deleteWorldId && (
         <DeleteWorldModal
           worldName={
-            worlds.find((world) => world.worldId === worldId)?.worldName ||
-            worldId
+            worlds.find((world) => world.worldId === deleteWorldId)?.worldName ||
+            deleteWorldId
           }
           confirmText={deleteConfirmText}
           setConfirmText={setDeleteConfirmText}
           onClose={() => {
-            setShowDeleteModal(false);
+            setDeleteWorldId(null);
             setDeleteConfirmText('');
             setError('');
           }}

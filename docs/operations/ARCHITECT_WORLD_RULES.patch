@@ -1,0 +1,91 @@
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -9 +9,6 @@
+-    function isPreviewWorldOwner(worldId) {
++    function hasManagedWorldLifecycle(worldId, data) {
++      return (isPreviewWorldId(worldId) && data.get('ownerPreview', false) == true)
++        || data.get('worldLifecycleVersion', 0) == 1;
++    }
++
++    function isManagedWorldOwner(worldId) {
+@@ -11 +15,0 @@
+-        && isPreviewWorldId(worldId)
+@@ -14 +18 @@
+-        && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.get('ownerPreview', false) == true;
++        && hasManagedWorldLifecycle(worldId, get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
+@@ -60 +64 @@
+-      return isPreviewWorldOwner(worldId)
++      return isManagedWorldOwner(worldId)
+@@ -108 +111,0 @@
+-        && isPreviewWorldId(childWorldId)
+@@ -111 +114 @@
+-        && getAfter(childPath).data.ownerPreview == true
++        && hasManagedWorldLifecycle(childWorldId, getAfter(childPath).data)
+@@ -204,2 +207 @@
+-          && !(isPreviewWorldId(worldId)
+-            && get(worldDocPath()).data.get('ownerPreview', false) == true);
++          && !hasManagedWorldLifecycle(worldId, get(worldDocPath()).data);
+@@ -228 +230 @@
+-        && !('ownerPreview' in request.resource.data);
++        && !request.resource.data.keys().hasAny(['ownerPreview', 'worldLifecycleVersion', 'worldLifecycle']);
+@@ -230,3 +232,3 @@
+-        && !(isPreviewWorldId(worldId)
+-          && resource.data.get('ownerPreview', false) == true)
+-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerPreview']);
++        && !hasManagedWorldLifecycle(worldId, resource.data)
++        && !('worldLifecycle' in resource.data)
++        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerPreview', 'worldLifecycleVersion', 'worldLifecycle']);
+@@ -241 +243,2 @@
+-        allow create, update: if isLegacyWorldOwner();
++        allow create, update: if isLegacyWorldOwner()
++          && !('worldLifecycle' in get(worldDocPath()).data);
+@@ -246 +249,2 @@
+-          allow create, update: if isLegacyWorldOwner();
++          allow create, update: if isLegacyWorldOwner()
++          && !('worldLifecycle' in get(worldDocPath()).data);
+@@ -252 +256 @@
+-    // Rules for worlds initialized by the protected owner Preview.
++    // Worlds written by the trusted initializer use the governed Rules.
+@@ -255,2 +259 @@
+-        && isPreviewWorldId(worldId)
+-        && resource.data.get('ownerPreview', false) == true
++        && hasManagedWorldLifecycle(worldId, resource.data)
+@@ -258 +261 @@
+-          'ownerPreview', 'worldId', 'parentWorldId'
++          'ownerPreview', 'worldId', 'parentWorldId', 'worldLifecycleVersion'
+@@ -272 +275 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -277 +280 @@
+-          allow read: if isPreviewWorldOwner(worldId);
++          allow read: if isManagedWorldOwner(worldId);
+@@ -282 +285 @@
+-          allow read: if isPreviewWorldOwner(worldId);
++          allow read: if isManagedWorldOwner(worldId);
+@@ -288 +291 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -300 +303 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -308 +311 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -348 +351 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -395 +398 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -429 +432 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -437 +440 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -442 +445 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);
+@@ -449 +452 @@
+-        allow read: if isPreviewWorldOwner(worldId);
++        allow read: if isManagedWorldOwner(worldId);

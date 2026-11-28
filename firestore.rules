@@ -52,7 +52,8 @@ service cloud.firestore {
 
     function isOpenForClientWorldWrites(worldId) {
       return isWorldOwner(worldId)
-        && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
+        && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data)
+        && !('worldLifecycle' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
     }
 
     // Opt-in only: existing worlds are never silently migrated. In a fenced
@@ -102,7 +103,8 @@ service cloud.firestore {
         && getAfter(childPath).data.createdBy == request.auth.uid
         && getAfter(childPath).data.parentWorldId == worldId
         && getAfter(childPath).data.isArchived == false
-        && !('partialBranchCleanupClaim' in getAfter(childPath).data);
+        && !('partialBranchCleanupClaim' in getAfter(childPath).data)
+        && !('worldLifecycle' in getAfter(childPath).data);
     }
 
     function preservesFinalizedChildLineage(worldId) {
@@ -197,6 +199,8 @@ service cloud.firestore {
       allow get, list: if isWorldMetadataOwner();
       allow create: if false;
       allow update: if isWorldMetadataOwner()
+        && !('worldLifecycle' in resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['worldLifecycle', 'worldLifecycleVersion', 'ownerPreview', 'worldId', 'parentWorldId'])
         && request.resource.data.createdBy == resource.data.createdBy
         && preservesDraftInventoryFence()
         && preservesGovernedContractMetadata()

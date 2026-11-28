@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { worldHttpProofPlugin } from './scripts/dev/worldHttpPlugin';
 import { realDraftReviewPlugin } from './scripts/review/realDraftReviewPlugin';
 
 export default defineConfig({
-  plugins: [react(), realDraftReviewPlugin()],
+  plugins: [react(), realDraftReviewPlugin(), worldHttpProofPlugin()],
   server: {
     watch: { ignored: ['**/.scoutzero-dev/**', '**/.scoutzero-dev-tools/**'] },
     fs: {

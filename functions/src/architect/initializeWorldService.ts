@@ -1,5 +1,5 @@
 /** Trusted world initialization shared by server transports. */
-import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { FieldValue, type Firestore, type WriteBatch } from 'firebase-admin/firestore';
 import {
   branchTrustedContractBaselineDocuments,
   branchRetainedSimulationContractBaseline,
@@ -196,6 +196,7 @@ function contractMetadataFromParent(
 }
 
 function freshWorldMetadata(args: {
+  serverTimestamp: typeof FieldValue.serverTimestamp;
   worldId: string;
   worldName: string;
   description: string;
@@ -209,8 +210,8 @@ function freshWorldMetadata(args: {
     worldName: args.worldName,
     description: args.description,
     createdBy: args.userId,
-    createdAt: FieldValue.serverTimestamp(),
-    lastModifiedAt: FieldValue.serverTimestamp(),
+    createdAt: args.serverTimestamp(),
+    lastModifiedAt: args.serverTimestamp(),
     currentSeason: args.season,
     baselineSeason: args.season,
     parentWorldId: null,
@@ -229,6 +230,7 @@ function freshWorldMetadata(args: {
 }
 
 function branchWorldMetadata(args: {
+  serverTimestamp: typeof FieldValue.serverTimestamp;
   worldId: string;
   worldName: string;
   description: string;
@@ -283,12 +285,12 @@ function branchWorldMetadata(args: {
     worldName: args.worldName,
     description: args.description,
     createdBy: args.userId,
-    createdAt: FieldValue.serverTimestamp(),
-    lastModifiedAt: FieldValue.serverTimestamp(),
+    createdAt: args.serverTimestamp(),
+    lastModifiedAt: args.serverTimestamp(),
     currentSeason,
     baselineSeason: governedBaselineSeason,
     parentWorldId: args.parentWorldId,
-    branchedFrom: FieldValue.serverTimestamp(),
+    branchedFrom: args.serverTimestamp(),
     childWorlds: [],
     modifiedTeams: arrayOrEmpty(args.parent.modifiedTeams),
     actionCount:
@@ -391,12 +393,20 @@ async function simulationCopyMetadata(
   return { metadata, draftRoot: cloneJson(root.release as JsonRecord) };
 }
 
+type InitializationWriteSink = {
+  create: (...args: Parameters<WriteBatch['create']>) => void;
+  set: (ref: FirebaseFirestore.DocumentReference, data: JsonRecord) => void;
+};
+
 type InitializationInputs = {
   loadFinancial?: typeof loadSimulationFinancialBaseline;
   loadDraft?: typeof loadSimulationDraftBaseline;
   loadRetained?: typeof loadTrustedContractRelease;
   loadFixtureDraft: typeof loadTrustedDraftBaseline;
   financialSha256?: string;
+  worldLifecycleVersion?: 1;
+  serverTimestamp?: typeof FieldValue.serverTimestamp;
+  commitWrites?: (build: (writer: InitializationWriteSink) => void) => Promise<void>;
 };
 
 export async function initializeArchitectWorldService(
@@ -408,6 +418,13 @@ export async function initializeArchitectWorldService(
     loadRetained = loadTrustedContractRelease,
     loadFixtureDraft,
     financialSha256 = process.env.SCOUTZERO_SIMULATION_FINANCIAL_SHA256,
+    worldLifecycleVersion,
+    serverTimestamp = () => FieldValue.serverTimestamp(),
+    commitWrites = async (build) => {
+      const batch = db.batch();
+      build(batch);
+      await batch.commit();
+    },
   }: InitializationInputs
 ) {
   if (!request.auth) {
@@ -548,6 +565,7 @@ export async function initializeArchitectWorldService(
         documents = retained.documents;
       }
       metadata = branchWorldMetadata({
+        serverTimestamp,
         worldId,
         worldName,
         description,
@@ -580,6 +598,7 @@ export async function initializeArchitectWorldService(
       );
       documents = buildTrustedContractBaselineDocuments(release, worldId);
       metadata = freshWorldMetadata({
+        serverTimestamp,
         worldId,
         worldName,
         description,
@@ -649,6 +668,8 @@ export async function initializeArchitectWorldService(
       }
     }
 
+    if (worldLifecycleVersion) metadata.worldLifecycleVersion = worldLifecycleVersion;
+
     const draftWrites = draftBaseline
       ? 1 +
         Object.keys(draftBaseline.baseline.initialTeams).length +
@@ -668,7 +689,7 @@ export async function initializeArchitectWorldService(
       // world only appears when the batch below creates its document.
       const entries = Object.entries(simulationBaseline.teams);
       for (let index = 0; index < entries.length; index += 5) {
-        const staged = db.batch();
+        await commitWrites((staged) => {
         for (const [code, team] of entries.slice(index, index + 5))
           staged.set(
             worldRef.collection('teams').doc(code),
@@ -682,10 +703,10 @@ export async function initializeArchitectWorldService(
                 }
               : team
           );
-        await staged.commit();
+        });
       }
     }
-    const batch = db.batch();
+    await commitWrites((batch) => {
     batch.create(worldRef, metadata);
     for (const document of documents) {
       batch.create(
@@ -733,7 +754,7 @@ export async function initializeArchitectWorldService(
         release: simulationCopy.draftRoot,
       });
     }
-    await batch.commit();
+    });
     return {
       ok: true,
       worldId,

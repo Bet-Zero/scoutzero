@@ -23,7 +23,7 @@ const LABEL: Record<SimulationPackageKind, string> = {
   financial: 'Simulation financial',
   draft: 'Simulation draft',
 };
-const PRIVATE_PACKAGES_COLLECTION = 'architect_privateSimulationPackages';
+export const PRIVATE_PACKAGES_COLLECTION = 'architect_privateSimulationPackages';
 const MAX_COMPRESSED_BYTES = 1_000_000;
 const MAX_RELEASE_BYTES = 32 * 1024 * 1024;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -34,8 +34,8 @@ export type ReadStorageObject = (
 ) => Promise<Buffer>;
 type ReadFirestorePackage = (documentId: string) => Promise<unknown>;
 
-export function isSimulationLiveEnabled(): boolean {
-  return process.env.SCOUTZERO_SIMULATION_LIVE === 'true';
+export function isSimulationLiveEnabled(env = process.env): boolean {
+  return env.SCOUTZERO_SIMULATION_LIVE === 'true';
 }
 
 function isLocalDemoEmulator(): boolean {
@@ -63,14 +63,15 @@ const readFromFirestore: ReadFirestorePackage = async (documentId) => {
 export async function readSimulationPackageBytes(
   kind: SimulationPackageKind,
   readObject: ReadStorageObject = readFromStorage,
-  readFirestore: ReadFirestorePackage = readFromFirestore
+  readFirestore: ReadFirestorePackage = readFromFirestore,
+  env = process.env
 ): Promise<Buffer | null> {
   const prefix = PREFIX[kind];
   const label = LABEL[kind];
-  const file = process.env[`${prefix}_FILE`];
-  const object = process.env[`${prefix}_OBJECT`];
-  const firestore = process.env.SCOUTZERO_SIMULATION_PACKAGE_SOURCE === 'firestore';
-  const pinned = process.env[`${prefix}_SHA256`] ?? '';
+  const file = env[`${prefix}_FILE`];
+  const object = env[`${prefix}_OBJECT`];
+  const firestore = env.SCOUTZERO_SIMULATION_PACKAGE_SOURCE === 'firestore';
+  const pinned = env[`${prefix}_SHA256`] ?? '';
   if (!file && !object && !firestore) return null;
   if (file && object)
     throw new Error(`${label} input names both a local file and an object.`);
@@ -82,7 +83,7 @@ export async function readSimulationPackageBytes(
       throw new Error(`${label} inputs require the local demo emulator.`);
     bytes = readFileSync(file);
   } else if (firestore) {
-    if (!isSimulationLiveEnabled()) return null;
+    if (!isSimulationLiveEnabled(env)) return null;
     if (!SHA256.test(pinned)) throw new Error(`${label} input digest mismatch.`);
     const compressed = await readFirestore(`${kind}-${pinned}`);
     if (!Buffer.isBuffer(compressed) || compressed.length > MAX_COMPRESSED_BYTES)
@@ -93,7 +94,7 @@ export async function readSimulationPackageBytes(
       throw new Error(`${label} Firestore release could not be decompressed.`);
     }
   } else {
-    if (!isSimulationLiveEnabled()) return null;
+    if (!isSimulationLiveEnabled(env)) return null;
     const match = /^gs:\/\/([a-z0-9][a-z0-9._-]*)\/(.+)$/.exec(object ?? '');
     if (!match)
       throw new Error(`${label} object must be a gs://bucket/path name.`);
