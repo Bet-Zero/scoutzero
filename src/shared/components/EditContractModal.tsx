@@ -877,9 +877,14 @@ export const EditContractModal = ({
       (!governedNoticeRequirements?.leagueForwardingRequired ||
         (Boolean(optionNotice.leagueReceivedAt.trim()) &&
           Boolean(optionNotice.playersAssociationForwardedAt.trim()))));
+  const signingBlockReason =
+    signingGuardrails && 'signingBlockReason' in signingGuardrails
+      ? signingGuardrails.signingBlockReason
+      : null;
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
+    Boolean(signingBlockReason) ||
     validationState.incomplete ||
     (!validationState.isLegal &&
       !validationState.incomplete &&
@@ -895,7 +900,9 @@ export const EditContractModal = ({
   // disableConfirm predicate above, it does not gate the action itself.
   const confirmDisabledReason = isSubmitting
     ? null
-    : !selectedAction
+    : signingBlockReason
+      ? signingBlockReason
+      : !selectedAction
       ? 'Select an action to continue'
       : selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode
         ? 'Choose a destination team'
