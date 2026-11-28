@@ -612,7 +612,7 @@ const buildWaivedContractTimelineEntry = (
         title: 'Waiver Record',
         lines: [
           `Player: ${playerName}`,
-          `Stretch provision: ${entry?.stretched ? 'Yes' : 'No'}`,
+          `Stretch provision: ${entry?.stretched == null ? 'Unknown' : entry.stretched ? 'Yes' : 'No'}`,
           deadCapLines.length > 0
             ? `Dead cap breakdown: ${deadCapLines.join('; ')}`
             : 'No dead cap breakdown was recorded',
