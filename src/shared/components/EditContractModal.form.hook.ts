@@ -151,6 +151,9 @@ export const useEditContractModalForm = ({
       ordinarySigningDate,
       ACTION_YEAR
     );
+    if (exception && 'reason' in exception) {
+      return { ...guardrails, signingBlockReason: exception.reason };
+    }
     if (exception && 'remaining' in exception) {
       return {
         ...guardrails,
