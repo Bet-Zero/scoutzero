@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { ExceptionHistoryTracker } from '@/features/architect/capSheet/ExceptionHistoryTracker';
 import { DraftPickTracker } from '@/features/architect/offseason/DraftPickTracker';
 import { WaiveStretchTracker } from '@/features/architect/offseason/WaiveStretchTracker';
@@ -197,6 +197,10 @@ describe('Team History E84 subsection rendering', () => {
               2026: 250000,
             },
           },
+          {
+            name: 'Player Third',
+            deadCap: { 2027: 100000 },
+          },
         ]}
       />
     );
@@ -207,6 +211,10 @@ describe('Team History E84 subsection rendering', () => {
     expect(screen.getByTestId('team-history-waived-row-1')).toHaveTextContent(
       'Player Second'
     );
+    for (const [index, label] of ['Yes', 'No', 'Unknown'].entries()) {
+      const row = within(screen.getByTestId(`team-history-waived-row-${index}`));
+      expect(row.getByRole('cell', { name: new RegExp(`^${label}$`) })).toBeInTheDocument();
+    }
     expect(
       screen.getByTestId('team-history-dead-cap-row-2026')
     ).toHaveTextContent('2026');

@@ -56,7 +56,9 @@ export const WaiveStretchTracker = ({
               >
                 <td className="p-2">{wc.name}</td>
                 <td className="p-2">{wc.waivedOn}</td>
-                <td className="p-2">{wc.stretched ? 'Yes' : 'No'}</td>
+                <td className="p-2">
+                  {wc.stretched == null ? 'Unknown' : wc.stretched ? 'Yes' : 'No'}
+                </td>
                 <td className="p-2 space-y-1">
                   {Object.entries(wc.deadCap || {}).map(([year, amt]) => (
                     <div key={year}>
