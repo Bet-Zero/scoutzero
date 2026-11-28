@@ -55,6 +55,8 @@ export interface DeriveComparisonViewModelInput {
    * Caller derives this from teamCapSheet.players using their ID normalization.
    */
   currentRosterPlayerIds: string[];
+  /** Earlier saved moves are still available to load. */
+  historyIncomplete?: boolean;
   exceptionHistory?: Parameters<typeof deriveExceptionDelta>[0]['history'];
   exceptionBalances?: Parameters<typeof deriveExceptionDelta>[0]['balances'];
   /** From WorldMetadata.modifiedTeams. Best-effort; may be incomplete. */
@@ -218,7 +220,12 @@ export function deriveComparisonViewModel(
   let capTotalDelta = null;
   let taxApronPostureDelta = null;
 
-  if (sorted.length > 0) {
+  if (input.historyIncomplete) {
+    unavailableSummary.push({
+      field: 'capTotalDelta',
+      reason: 'Load earlier saved moves to compare salaries from the start.',
+    });
+  } else if (sorted.length > 0) {
     const earliestEvent = sorted[financialStart];
     const mostRecentEvent = sorted[sorted.length - 1];
 

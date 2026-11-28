@@ -1584,6 +1584,7 @@ export const GMDashboard = () => {
           status={comparisonViewModel.status}
           viewModel={comparisonViewModel.viewModel}
           error={comparisonViewModel.error}
+          earlierMoves={comparisonViewModel.earlierMoves}
           onNavigateToHistory={openHistoryRoot}
           onNavigateToCapSheet={() => setActiveTab('cap')}
           onNavigateToRoster={() => setActiveTab('roster')}
