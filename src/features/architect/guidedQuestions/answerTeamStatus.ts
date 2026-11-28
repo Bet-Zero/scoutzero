@@ -4,10 +4,11 @@
  * OWNERSHIP: Feature: architect/guidedQuestions
  *
  * Pure functions. Read from ArchitectWorkspaceContext only. No React,
- * no Firestore, no mutation callbacks, no validators.
+ * no Firestore or mutation callbacks.
  */
 
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { evaluateGuideRoster } from './guideRosterPolicy';
 import { getCatalogEntry } from './questionCatalog';
 import type {
   Stage4EvidenceChip,
@@ -271,35 +272,24 @@ export function buildRosterCountAnswer(
     },
   ];
 
-  const blockers: Stage4GuidedAnswer['blockingConstraints'] = [];
-  let severity: Stage4GuidedAnswer['severity'] = 'info';
-
-  if (roster.count > 17) {
-    severity = 'danger';
-    blockers.push({
-      label: `Roster has ${roster.count} entries — above the 17-roster CBA limit.`,
-      authority: 'committed-world / current-season',
-      severity: 'danger',
-    });
-  } else if (roster.count < 14) {
-    severity = 'warning';
-    blockers.push({
-      label: `Roster has only ${roster.count} entries — below the 14-roster floor.`,
-      authority: 'committed-world / current-season',
-      severity: 'warning',
-    });
-  }
+  const { warnings, unavailableReason } = evaluateGuideRoster(context);
+  const total = `${roster.count} roster spot${roster.count === 1 ? '' : 's'} used`;
+  const counts = roster.standardCount === null || roster.twoWayCount === null
+    ? ''
+    : ` (${roster.standardCount} Standard, ${roster.twoWayCount} Two-Way)`;
 
   return {
     ...entry,
-    status: 'available',
-    shortAnswer: `${roster.count} roster spot${roster.count === 1 ? '' : 's'} used (source: ${roster.source}).`,
+    status: unavailableReason ? 'partial' : 'available',
+    shortAnswer: `${total}${counts}.`,
     evidence: chips,
     authorityLabels: dedupeAuthorityLabels(chips),
     navigationTargets: [NAV_ROSTER],
-    blockingConstraints: blockers,
-    deferredReasons: [],
-    severity,
+    blockingConstraints: warnings,
+    deferredReasons: unavailableReason
+      ? [{ reason: unavailableReason, authority: 'unavailable' }]
+      : [],
+    severity: warnings[0]?.severity ?? 'info',
   };
 }
 

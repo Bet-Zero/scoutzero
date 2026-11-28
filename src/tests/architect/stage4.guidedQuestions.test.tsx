@@ -349,42 +349,82 @@ describe('team-status answers', () => {
     expect(ans.blockingConstraints.length).toBeGreaterThan(0);
   });
 
-  it('roster-count uses workspace roster data', () => {
-    const vm = deriveGuidedAnswers(baseInput());
+  const currentRosterContext = (standardCount: number, twoWayCount: number) =>
+    makeWorkspaceContext({
+      worldDate: { status: 'available', value: '2027-01-15', label: '2027-01-15' },
+      seasons: {
+        ...makeWorkspaceContext().seasons,
+        selectedViewingSeason: 2027,
+        selectedViewingSeasonLabel: '2026-27',
+        authoritativeWorldSeason: '2026-27',
+        authoritativeWorldSeasonLabel: '2026-27',
+      },
+      roster: {
+        status: 'available',
+        count: standardCount + twoWayCount,
+        standardCount,
+        twoWayCount,
+        source: 'players',
+      },
+    });
+
+  it('shows all 18 spots at the 15 Standard and 3 Two-Way limits without a warning', () => {
+    const vm = deriveGuidedAnswers(baseInput({ workspaceContext: currentRosterContext(15, 3) }));
     const ans = vm.answers.find((a) => a.id === 'roster-count')!;
     expect(ans.status).toBe('available');
-    expect(ans.shortAnswer).toMatch(/15 roster/);
+    expect(ans.shortAnswer).toMatch(/18 roster spots used \(15 Standard, 3 Two-Way\)/);
+    expect(ans.blockingConstraints).toEqual([]);
+    expect(vm.answers.find((a) => a.id === 'current-constraints')?.blockingConstraints).toEqual([]);
   });
 
-  it('roster-count flags over-limit roster as danger', () => {
-    const ctx = makeWorkspaceContext({
-      roster: {
-        status: 'available',
-        count: 18,
-        standardCount: 18,
-        twoWayCount: 0,
-        source: 'players',
-      },
+  it.each([
+    [16, 0, /16 Standard players exceed the ordinary limit of 15/],
+    [14, 4, /4 Two-Way players exceed the limit of 3/],
+  ] as const)('flags the overrun with %i Standard and %i Two-Way players throughout Guide',
+    (standardCount, twoWayCount, warning) => {
+      const vm = deriveGuidedAnswers(baseInput({
+        workspaceContext: currentRosterContext(standardCount, twoWayCount),
+      }));
+      for (const id of ['roster-count', 'current-constraints', 'inspect-first']) {
+        const ans = vm.answers.find((a) => a.id === id)!;
+        expect(ans.severity).toBe('danger');
+        expect(ans.blockingConstraints).toEqual([
+          expect.objectContaining({ label: expect.stringMatching(warning) }),
+        ]);
+      }
     });
-    const vm = deriveGuidedAnswers(baseInput({ workspaceContext: ctx }));
-    const ans = vm.answers.find((a) => a.id === 'roster-count')!;
-    expect(ans.severity).toBe('danger');
-    expect(ans.blockingConstraints.length).toBeGreaterThan(0);
-  });
 
-  it('roster-count flags below-floor roster as warning', () => {
-    const ctx = makeWorkspaceContext({
-      roster: {
-        status: 'available',
-        count: 12,
-        standardCount: 12,
-        twoWayCount: 0,
-        source: 'players',
-      },
-    });
-    const vm = deriveGuidedAnswers(baseInput({ workspaceContext: ctx }));
+  it('describes the ordinary Standard floor without assuming the dated allowance', () => {
+    const vm = deriveGuidedAnswers(baseInput({ workspaceContext: currentRosterContext(13, 3) }));
     const ans = vm.answers.find((a) => a.id === 'roster-count')!;
     expect(ans.severity).toBe('warning');
+    expect(ans.blockingConstraints[0].label).toMatch(/13 Standard.*14.*dated shortage allowance/);
+  });
+
+  it('reports the total but defers roster limits when only player IDs are known', () => {
+    const ctx = {
+      ...currentRosterContext(15, 3),
+      roster: {
+        status: 'available', count: 18, standardCount: null, twoWayCount: null, source: 'roster',
+      },
+    } satisfies ArchitectWorkspaceContext;
+    const vm = deriveGuidedAnswers(baseInput({ workspaceContext: ctx }));
+    const ans = vm.answers.find((a) => a.id === 'roster-count')!;
+    expect(ans.status).toBe('partial');
+    expect(ans.shortAnswer).toBe('18 roster spots used.');
+    expect(ans.deferredReasons[0].reason).toMatch(/counts are unavailable/);
+    expect(vm.answers.find((a) => a.id === 'current-constraints')?.shortAnswer).toMatch(/could not be checked/);
+  });
+
+  it('does not use current regular-season roster limits for an offseason date', () => {
+    const ctx = {
+      ...currentRosterContext(16, 0),
+      worldDate: { status: 'available', value: '2026-07-15', label: '2026-07-15' },
+    } satisfies ArchitectWorkspaceContext;
+    const vm = deriveGuidedAnswers(baseInput({ workspaceContext: ctx }));
+    const ans = vm.answers.find((a) => a.id === 'roster-count')!;
+    expect(ans.status).toBe('partial');
+    expect(ans.blockingConstraints).toEqual([]);
   });
 
   it('exceptions-available lists active exceptions', () => {
@@ -401,11 +441,11 @@ describe('team-status answers', () => {
 // ---------------------------------------------------------------------------
 
 describe('constraints answers', () => {
-  it('current-constraints reports no observed constraints when posture is clean', () => {
+  it('current-constraints distinguishes no other warnings from unchecked roster limits', () => {
     const vm = deriveGuidedAnswers(baseInput());
     const ans = vm.answers.find((a) => a.id === 'current-constraints')!;
     expect(ans.status).toBe('partial');
-    expect(ans.shortAnswer).toMatch(/No cap, roster, or season-mismatch warnings/);
+    expect(ans.shortAnswer).toMatch(/Roster limits could not be checked. No other warnings/);
   });
 
   it('current-constraints surfaces second-apron blocker', () => {
@@ -463,11 +503,11 @@ describe('constraints answers', () => {
     expect(ans.navigationTargets[0].id).toBe('cap');
   });
 
-  it('inspect-first is available even with no warnings', () => {
+  it('inspect-first still points to Roster when limits could not be checked', () => {
     const vm = deriveGuidedAnswers(baseInput());
     const ans = vm.answers.find((a) => a.id === 'inspect-first')!;
-    expect(ans.status).toBe('available');
-    expect(ans.shortAnswer).toMatch(/No warnings observed/);
+    expect(ans.status).toBe('partial');
+    expect(ans.navigationTargets.map((target) => target.id)).toContain('roster');
   });
 });
 
