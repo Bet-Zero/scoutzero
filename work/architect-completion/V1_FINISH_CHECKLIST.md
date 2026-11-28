@@ -96,6 +96,11 @@ changes V1 scope.
 
 ## Phase 2b: Sandbox on the current snapshot (added November 28)
 
+Delivered through [PLAN_FINAL.md](../sandbox-unification/PLAN_FINAL.md),
+stages 0–7. Owner requirements: Sandbox is V1, works without signup, keeps
+applied moves on the browser until Reset, and uses the same rules and money as
+a world.
+
 - [ ] S1 The shared NBA data that Sandbox reads holds the same current 2026-27
       snapshot as the new-world baseline. Publishing to production needs the
       owner's OK under AGENTS.md.

@@ -94,16 +94,21 @@ each need the owner's OK, as AGENTS.md lists.
    Architect tool. It shows the current maintained NBA snapshot (rosters,
    Contracts, money, exceptions, restrictions and draft rights at a stated
    date) and is held to exactly the same rule and money standard as a world.
-   It is never a lower-trust "preview". An untouched new world created from
-   the same snapshot must give the same books and the same verdicts; the only
-   difference is that a world saves its own simulated history.
+   It is never a lower-trust "preview". It works without signup, and its
+   applied moves stay on the browser until the user presses Reset. An
+   untouched new world created from the same snapshot must give the same books
+   and the same verdicts; the difference is that a world is saved to the
+   account with its own history. The delivery plan is
+   [PLAN_FINAL.md](../../work/sandbox-unification/PLAN_FINAL.md).
 
 ## Required V1 workflows
 
 Each workflow must work in a saved world. Under decision 7, every workflow
 that does not depend on saving (W2 through W10 and W14) must also work in
-Sandbox, with the same results. Saving, reload persistence, Team History,
-Compare and moves-so-far stay saved-world behavior. Each must also meet the
+Sandbox, with the same results. Sandbox keeps its applied moves on the same
+browser through reloads, reopening, sign-in and app updates until the user
+presses Reset (owner, November 28). Account saving, Team History, Compare and
+moves-so-far stay saved-world behavior. Each must also meet the
 [behavior standard](#behavior-standard). Rooms on `main`: Roster, Cap Sheet,
 Full Cap Table, Trade Machine, Free Agency, Team History, Compare, Guide, and the
 cockpit chrome (top bar, navigation rail, Team Plan drawer). The Offseason room
@@ -194,11 +199,12 @@ A required workflow is complete only when all six hold in the real product:
    blocked before apply. The verdict and reasons are visible where the decision
    is made. A blocked state never reads as success. The user can fix the problem
    or back out cleanly.
-3. **Applied work persists.** Applied actions write to the saved world. Staged
+3. **Applied work persists.** Applied actions write to the saved world, or in
+   Sandbox to the browser until Reset. Staged
    but unapplied work survives navigation or the product warns before
    discarding it.
-4. **Reload proves it.** After a full reload, books, roster and history are
-   unchanged.
+4. **Reload proves it.** After a full reload, books, roster and history (in
+   a world) are unchanged.
 5. **Rooms agree.** After any applied action, Roster, Cap Sheet, Full Cap Table,
    Team History, Compare and the Team Plan drawer are consistent, including for
    every other team the action touched.
