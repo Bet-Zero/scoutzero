@@ -243,6 +243,22 @@ describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
     expect(row4).toHaveTextContent('—');
   });
 
+  it('shows unknown stretch status in a reconstructed waiver detail', () => {
+    render(
+      <TeamHistoryTab
+        teamCapSheet={{
+          ...buildBaseTeam(),
+          waivedContracts: [{ name: 'Prior Contract', deadCap: { 2027: 250_000 } }],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-event-row-0'));
+    expect(screen.getByTestId('team-history-detail-sections')).toHaveTextContent(
+      'Stretch provision: Unknown'
+    );
+  });
+
   it('preserves derived-source metadata and source-specific detail meaning for synthesized rows', () => {
     render(
       <TeamHistoryTab
