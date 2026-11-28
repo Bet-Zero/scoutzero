@@ -108,4 +108,21 @@ describe('TeamPosturePanel', () => {
     expect(summary).toHaveTextContent('16 / 15 roster spots shown');
     expect(summary).toHaveTextContent('Used restricted transaction path');
   });
+
+  it.each([
+    [-2_500_000, '−$2.5M'],
+    [0, '$0'],
+    [2_500_000, '$2.5M'],
+    [null, 'Needs input'],
+  ])('preserves the sign and availability of space %s', (amount, label) => {
+    const workspace = withAboveSecondApron(makeSandboxWorkspace());
+    if (workspace.cap.status !== 'available') throw new Error('Expected cap data');
+    workspace.cap.capSpace = amount;
+    workspace.cap.secondApronSpace = amount;
+
+    render(<TeamPosturePanel workspace={workspace} orientation="horizontal" />);
+
+    expect(screen.getByTestId('cockpit-status-cap-space-value')).toHaveTextContent(label);
+    expect(screen.getByTestId('cockpit-status-apron2-value')).toHaveTextContent(label);
+  });
 });
