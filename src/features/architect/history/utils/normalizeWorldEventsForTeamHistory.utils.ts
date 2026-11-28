@@ -308,6 +308,7 @@ export function readTeamCapDelta(
 
   const before = asObject(beforeTotalsByTeam[teamCode]);
   const after = asObject(afterTotalsByTeam[teamCode]);
+  if (before.teamSalary == null || after.teamSalary == null) return null;
   const beforeValue = Number(before.teamSalary);
   const afterValue = Number(after.teamSalary);
 
@@ -349,8 +350,11 @@ export function buildCapDeltaContext({
   const deltaLines = orderedTeamCodes
     .flatMap((teamCode) =>
       bookFields.map(([field, label]) => {
-        const before = Number(asObject(beforeTotalsByTeam[teamCode])[field]);
-        const after = Number(asObject(afterTotalsByTeam[teamCode])[field]);
+        const beforeValue = asObject(beforeTotalsByTeam[teamCode])[field];
+        const afterValue = asObject(afterTotalsByTeam[teamCode])[field];
+        if (beforeValue == null || afterValue == null) return null;
+        const before = Number(beforeValue);
+        const after = Number(afterValue);
         if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
         const delta = after - before;
         return {
@@ -385,7 +389,17 @@ export function buildCapDeltaContext({
         ? activeTeamDelta
         : (deltaLines.find((value) => value.field === 'teamSalary')?.delta ??
           null),
-    lines: deltaLines.map((value) => value.line),
+    lines: [
+      ...deltaLines.map((value) => value.line),
+      ...orderedTeamCodes
+        .filter((teamCode) =>
+          asObject(beforeTotalsByTeam[teamCode]).taxSalary === null ||
+          asObject(afterTotalsByTeam[teamCode]).taxSalary === null
+        )
+        .map((teamCode) =>
+          `${formatTeamLabel(teamCode, teamNameLookup)} final Tax Salary needs last-game inputs`
+        ),
+    ],
   };
 }
 

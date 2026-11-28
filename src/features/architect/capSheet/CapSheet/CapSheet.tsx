@@ -11,6 +11,7 @@
  *  - Plan: plans/player-rules-architect/plan.md
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
+import { projectTaxPosition } from '@/features/architect/utils/capTotals/projectTaxPosition';
 import React, {
   useEffect,
   useLayoutEffect,
@@ -416,6 +417,9 @@ export const CapSheet = ({
     `${year - 1}-${String(year % 100).padStart(2, '0')}`;
   const currentSeasonLabel = formatYearLabel(currentYear);
   const selectedSeasonLabel = formatYearLabel(selectedYear);
+  const taxEstimate = asOfDate && selectedYear === currentYear
+    ? projectTaxPosition(canonicalTotals.salaryBooks)
+    : null;
   const teamPlanLabel = resolveTeamPlanLabel(teamCapSheet);
 
   const renderNotes = (
@@ -561,6 +565,16 @@ export const CapSheet = ({
         is intentionally left in the codebase (it is still referenced by
         tests and may be reused). Phase 2C will retire it.
       */}
+
+      {taxEstimate && (
+        <p className="px-3 py-1.5 text-xs text-cockpit-text-muted" data-testid="cap-sheet-tax-estimate">
+          As of {taxEstimate.date}, the estimate is {taxEstimate.distanceFromTaxLevel === 0
+            ? 'at the tax line'
+            : `${formatCapSheetMoney(Math.abs(taxEstimate.distanceFromTaxLevel))} ${taxEstimate.distanceFromTaxLevel < 0 ? 'below' : 'above'} the tax line`}
+          {' '}if Team Salary stays at {formatCapSheetMoney(taxEstimate.teamSalary)} through the last game’s start,
+          before Tax Salary adjustments. Final Tax Salary needs the last-game baseline and adjustments.
+        </p>
+      )}
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
