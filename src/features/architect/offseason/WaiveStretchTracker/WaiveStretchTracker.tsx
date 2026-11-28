@@ -5,6 +5,7 @@ type WaivedContractEntry = {
   waivedOn?: string | null;
   stretched?: boolean | null;
   deadCap?: Record<string, number> | null;
+  openingObligation?: boolean;
 };
 
 type WaiveStretchTrackerProps = {
@@ -54,7 +55,12 @@ export const WaiveStretchTracker = ({
                 data-testid={`team-history-waived-row-${idx}`}
                 className="odd:bg-cockpit-slab"
               >
-                <td className="p-2">{wc.name}</td>
+                <td className="p-2">
+                  {wc.name}
+                  {wc.openingObligation && (
+                    <div className="text-xs text-cockpit-text-secondary">Opening obligation</div>
+                  )}
+                </td>
                 <td className="p-2">{wc.waivedOn}</td>
                 <td className="p-2">{wc.stretched ? 'Yes' : 'No'}</td>
                 <td className="p-2 space-y-1">
