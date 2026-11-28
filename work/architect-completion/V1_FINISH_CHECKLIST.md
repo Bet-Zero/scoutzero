@@ -200,8 +200,9 @@ changes V1 scope.
 - [ ] E2 One owner review link and the owner's final V1 decision.
 
 BZE-345's Done status records delivered simulation integration and a closed
-bounded investigation. Its historical financial completeness limitation remains;
-Done does not certify historical NBA legality or close B1, B5, D2, or E2.
+bounded investigation. Its historical financial completeness limitation remains,
+and it does not certify historical NBA legality. B1 and B5 were completed by
+later work; D2 and E2 remain open.
 
 ## Post-V1 (not gaps)
 
