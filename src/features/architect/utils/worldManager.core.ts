@@ -4,7 +4,7 @@
  */
 
 import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
-import { db, functions } from '@/firebaseConfig';
+import { auth, db, functions } from '@/firebaseConfig';
 import {
   collection,
   doc,
@@ -21,6 +21,22 @@ import {
   type WriteBatch,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import {
+  initializeWorldOverHttp,
+  removeWorldOverHttp,
+  WorldHttpError,
+} from './worldHttpClient';
+import {
+  readPendingWorldCreation,
+  acknowledgeWorldCreation,
+  retainWorldCreation,
+  withWorldCreationLock,
+  type PendingWorldCreation,
+} from './worldCreationRecovery';
+export {
+  readPendingWorldCreation,
+  acknowledgeWorldCreation,
+} from './worldCreationRecovery';
 import { TeamListFull } from '@/constants/teamList';
 import {
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
@@ -716,6 +732,8 @@ const initializeArchitectWorld = async (input: {
   parentWorldId?: string | null;
   expectedParentDraftRevision?: number | null;
 }): Promise<void> => {
+  if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true')
+    return initializeWorldOverHttp(input);
   const initializeFunction = httpsCallable(
     functions,
     'initializeArchitectWorld'
@@ -768,6 +786,35 @@ export async function createWorld({
     return branchWorld(parentWorldId, name, description, userId);
   }
 
+  if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true') {
+    return withWorldCreationLock(userId, async () => {
+      requireCreationOwner(userId);
+      let pending = readPendingWorldCreation(userId);
+      if (
+        pending &&
+        (pending.worldName !== name.trim() ||
+          pending.description !== description.trim() ||
+          pending.currentSeason !== currentSeason)
+      ) {
+        throw new Error(
+          'Recover your pending world before starting another creation.'
+        );
+      }
+      if (!pending) {
+        pending = {
+          worldId: generateWorldId(),
+          worldName: name.trim(),
+          description: description.trim(),
+          userId,
+          currentSeason,
+          parentWorldId: null,
+        };
+        retainWorldCreation(pending); // Must survive a reload before any request is sent.
+      }
+      return completePendingWorldCreation(pending);
+    });
+  }
+
   const worldId = generateWorldId();
   await initializeArchitectWorld({
     worldId,
@@ -779,6 +826,66 @@ export async function createWorld({
   });
   const metadata = await getWorldMetadata(worldId);
   return { worldId, metadata };
+}
+
+function requireCreationOwner(userId: string) {
+  if (auth.currentUser?.uid !== userId) {
+    throw new Error('Sign in to the account that started this world creation.');
+  }
+}
+
+async function completePendingWorldCreation(pending: PendingWorldCreation) {
+  requireCreationOwner(pending.userId);
+  try {
+    await initializeWorldOverHttp(pending);
+  } catch (error) {
+    // A lost HTTP response may follow a committed root. Do not reinterpret
+    // explicit authorization/conflict refusals as success.
+    if (error instanceof WorldHttpError && error.status < 500) throw error;
+    try {
+      const metadata = await getWorldMetadata(pending.worldId);
+      requireCreationOwner(pending.userId);
+      if (metadata.createdBy === pending.userId)
+        return { worldId: pending.worldId, metadata };
+    } catch {
+      /* Keep the durable request when the read is also unavailable. */
+    }
+    throw new Error(
+      'World creation could not be confirmed. Retry your pending creation.'
+    );
+  }
+  const metadata = await getWorldMetadata(pending.worldId);
+  requireCreationOwner(pending.userId);
+  if (metadata.createdBy !== pending.userId)
+    throw new Error('World owner does not match.');
+  // The UI acknowledges only after selecting the result; a reload between the
+  // response and selection must still recover this request.
+  return { worldId: pending.worldId, metadata };
+}
+
+export async function recoverPendingWorldCreation(userId: string) {
+  if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP !== 'true') return null;
+  if (!readPendingWorldCreation(userId)) return null;
+  return withWorldCreationLock(userId, async () => {
+    requireCreationOwner(userId);
+    const pending = readPendingWorldCreation(userId);
+    return pending ? completePendingWorldCreation(pending) : null;
+  });
+}
+
+/** Explicit discard clears a request only after trusted cleanup confirms completion. */
+export async function discardPendingWorldCreation(userId: string) {
+  return withWorldCreationLock(userId, async () => {
+    requireCreationOwner(userId);
+    const pending = readPendingWorldCreation(userId);
+    if (!pending) return;
+    if (!(await removeWorldOverHttp(pending.worldId, true)))
+      throw new Error(
+        'Cleanup is still in progress. Try discarding this creation again.'
+      );
+    requireCreationOwner(userId);
+    acknowledgeWorldCreation(userId, pending.worldId);
+  });
 }
 
 export async function getWorldMetadata(
@@ -998,6 +1105,21 @@ export async function purgeWorld(
     );
   }
 
+  if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true') {
+    const done = await removeWorldOverHttp(
+      worldId,
+      options.cleanupPartialBranch === true,
+      options.expectedParentWorldId
+    );
+    return {
+      ok: done,
+      queued: !done,
+      message: done
+        ? 'World deleted.'
+        : 'Deletion is still in progress. Try deleting this world again.',
+      details: { worldDeleted: done },
+    };
+  }
   const purgeFunction = httpsCallable(functions, 'purgeArchitectWorld');
 
   try {

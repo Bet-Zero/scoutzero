@@ -10,6 +10,7 @@ import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { teamSoftwareSeason } from '@/features/architect/utils/governedSeason/softwareSeasonContext';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 import type { CapProjectionMap } from './useArchitectState.types';
+import { acknowledgeWorldCreation } from '@/features/architect/utils/worldCreationRecovery';
 
 // ==== Season helpers ====
 export const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
@@ -29,6 +30,17 @@ export const writePersistedActiveWorldId = (
 
   if (worldId) {
     localStorage.setItem(storageKey, worldId);
+    if (
+      import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true' &&
+      localStorage.getItem(storageKey) === worldId
+    ) {
+      // Retire the durable request only after active selection is itself durable.
+      try {
+        acknowledgeWorldCreation(userId, worldId);
+      } catch {
+        /* Unreadable pending state remains fail-closed for recovery. */
+      }
+    }
     return;
   }
 
@@ -59,6 +71,7 @@ export const isUsableActiveWorldMetadata = (
 ) =>
   Boolean(metadata) &&
   metadata?.isArchived !== true &&
+  !metadata?.worldLifecycle &&
   resolveContractBaselineWorldCompatibility(metadata).compatible &&
   !(typeof metadata?.createdBy === 'string' && metadata.createdBy !== userId);
 

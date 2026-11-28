@@ -584,8 +584,9 @@ export function useArchitectState({
       worldId,
       identityToken: activeWorldIdentityTokenRef.current,
       setActiveWorld,
+      hasRestoredActiveWorld,
     }),
-    [setActiveWorld, worldId]
+    [setActiveWorld, worldId, hasRestoredActiveWorld]
   );
 
   const worldTimeOwner = useMemo<ArchitectWorldTimeOwner>(

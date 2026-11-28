@@ -1,0 +1,469 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isPreviewWorldOwner(worldId) {
+      return isAuthenticated()
+        && isPreviewWorldId(worldId)
+        && exists(/databases/$(database)/documents/architect_worlds/$(worldId))
+        && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid
+        && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.get('ownerPreview', false) == true;
+    }
+
+    function isPreviewWorldId(worldId) {
+      return worldId.matches('^owner_preview_.*$');
+    }
+
+    function isWorldMetadataOwner() {
+      return isAuthenticated()
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    function preservesGovernedContractMetadata() {
+      return ('contractBaselineVersion' in resource.data)
+        ? ('contractBaselineVersion' in request.resource.data
+          && request.resource.data.contractBaselineVersion == resource.data.contractBaselineVersion
+          && request.resource.data.contractSourceRelease == resource.data.contractSourceRelease
+          && request.resource.data.contractBaselineEffectiveAt == resource.data.contractBaselineEffectiveAt
+          && request.resource.data.contractBaselineSalaryCapYear == resource.data.contractBaselineSalaryCapYear
+          && request.resource.data.contractBaselineCoverage == resource.data.contractBaselineCoverage)
+        : !('contractBaselineVersion' in request.resource.data);
+    }
+
+    function preservesSimulationFinancialMetadata() {
+      return ('simulationFinancialBaseline' in resource.data)
+        ? ('simulationFinancialBaseline' in request.resource.data
+          && request.resource.data.simulationFinancialBaseline == resource.data.simulationFinancialBaseline)
+        : !('simulationFinancialBaseline' in request.resource.data);
+    }
+
+    function preservesGovernedDraftMetadata() {
+      return ('draftBaseline' in resource.data)
+        ? ('draftBaseline' in request.resource.data
+          && request.resource.data.draftBaseline == resource.data.draftBaseline)
+        : !('draftBaseline' in request.resource.data);
+    }
+
+    // A SIMULATION copy's lineage and receipt worlds are server-written only.
+    function preservesDraftCopyMetadata() {
+      return ('draftCopy' in resource.data)
+        ? ('draftCopy' in request.resource.data
+          && request.resource.data.draftCopy == resource.data.draftCopy)
+        : !('draftCopy' in request.resource.data);
+    }
+
+    function isOpenForClientWorldWrites(worldId) {
+      return isPreviewWorldOwner(worldId)
+        && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data)
+        && !('worldLifecycle' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
+    }
+
+    // Opt-in only: existing worlds are never silently migrated. In a fenced
+    // world ALL team, entitlement and event writers must advance this shared
+    // revision in their own atomic commit, or rules deny the complete write.
+    // This includes creates/deletes at IDs the reviewing client has never seen.
+    function advancesDraftInventory(worldId) {
+      let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
+      let before = get(worldPath).data;
+      let after = getAfter(worldPath).data;
+      return !('draftInventoryRevision' in before)
+        || (before.draftInventoryRevision is int
+          && before.draftInventoryRevision >= 0
+          && after.draftInventoryRevision is int
+          && after.draftInventoryRevision <= 9007199254740991
+          && after.draftInventoryRevision == before.draftInventoryRevision + 1);
+    }
+
+    function preservesDraftInventoryFence() {
+      return ('draftInventoryRevision' in resource.data)
+        ? ('draftInventoryRevision' in request.resource.data
+          && request.resource.data.draftInventoryRevision is int
+          && request.resource.data.draftInventoryRevision <= 9007199254740991
+          && (request.resource.data.draftInventoryRevision == resource.data.draftInventoryRevision
+            || request.resource.data.draftInventoryRevision == resource.data.draftInventoryRevision + 1))
+        : !('draftInventoryRevision' in request.resource.data);
+    }
+
+    function preservesPartialBranchCleanupClaim() {
+      return !('partialBranchCleanupClaim' in resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'partialBranchCleanupClaim'
+        ]);
+    }
+
+    function addsFinalizedUnclaimedChild(worldId) {
+      let previousChildren = resource.data.childWorlds;
+      let nextChildren = request.resource.data.childWorlds;
+      let childWorldId = nextChildren[nextChildren.size() - 1];
+      let childPath = /databases/$(database)/documents/architect_worlds/$(childWorldId);
+      return previousChildren is list
+        && nextChildren is list
+        && nextChildren.size() == previousChildren.size() + 1
+        && nextChildren.toSet().difference(previousChildren.toSet()).size() == 1
+        && previousChildren.toSet().difference(nextChildren.toSet()).size() == 0
+        && isPreviewWorldId(childWorldId)
+        && existsAfter(childPath)
+        && getAfter(childPath).data.createdBy == request.auth.uid
+        && getAfter(childPath).data.ownerPreview == true
+        && getAfter(childPath).data.parentWorldId == worldId
+        && getAfter(childPath).data.isArchived == false
+        && !('partialBranchCleanupClaim' in getAfter(childPath).data)
+        && !('worldLifecycle' in getAfter(childPath).data);
+    }
+
+    function preservesFinalizedChildLineage(worldId) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'childWorlds'
+        ])
+        || addsFinalizedUnclaimedChild(worldId);
+    }
+
+    function publishesSeasonTransition(worldId, transitionId, fromSeason, toSeason) {
+      let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
+      let eventPath = /databases/$(database)/documents/architect_worlds/$(worldId)/events/$(transitionId);
+      let worldBefore = get(worldPath);
+      let worldAfter = getAfter(worldPath);
+      let eventAfter = getAfter(eventPath);
+      return worldBefore.data.currentSeason == fromSeason
+        && worldAfter.data.currentSeason == toSeason
+        && eventAfter.data.eventId == transitionId
+        && eventAfter.data.metadata.seasonTransitionId == transitionId
+        && eventAfter.data.metadata.fromSeason == fromSeason
+        && eventAfter.data.metadata.toSeason == toSeason;
+    }
+
+    // BZE-321 bounded source review: authenticated, approved IDs only.
+    match /architect_baseEntitlements/{sourceId} {
+      allow get, list: if request.auth != null && sourceId == 'ent:LAC:2028:1:own:21a62110';
+      allow write: if false;
+    }
+    match /architect_basePickRules/{sourceId} {
+      allow get, list: if request.auth != null && sourceId == 'LAC_2028_1st';
+      allow write: if false;
+    }
+
+    // BZE-321: immutable derived review release; client reads only.
+    match /architect_draftPickReleases/{releaseId} {
+      allow get: if request.auth != null && releaseId.matches('^[a-f0-9]{64}$');
+      allow list, write: if false;
+      match /parts/{partId} {
+        allow get: if request.auth != null
+          && releaseId.matches('^[a-f0-9]{64}$')
+          && partId.matches('^[0-3]$')
+          && exists(/databases/$(database)/documents/architect_draftPickReleases/$(releaseId));
+        allow list, write: if false;
+      }
+    }
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BASE COLLECTIONS: Public read-only (Admin SDK only for writes)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // architect_baseTeams: Immutable base team data
+    match /architect_baseTeams/{teamCode} {
+      allow read: if true;
+      allow write: if false;  // Admin SDK only
+    }
+
+    // architect_basePlayers: Immutable base player data
+    match /architect_basePlayers/{playerId} {
+      allow read: if true;
+      allow write: if false;  // Admin SDK only
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ARCHITECT WORLDS: Owner-scoped access (requires auth)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /architect_worlds/{worldId} {
+
+      function worldDocPath() {
+        return /databases/$(database)/documents/architect_worlds/$(worldId);
+      }
+
+      function isOwner() {
+        return request.auth != null
+          && resource.data.createdBy == request.auth.uid;
+      }
+
+      function willBeOwner() {
+        return request.auth != null
+          && request.resource.data.createdBy == request.auth.uid;
+      }
+
+      // Used by subcollections (teams/players) where "resource" is NOT the world doc.
+      function isLegacyWorldOwner() {
+        return request.auth != null
+          && exists(worldDocPath())
+          && get(worldDocPath()).data.createdBy == request.auth.uid
+          && !(isPreviewWorldId(worldId)
+            && get(worldDocPath()).data.get('ownerPreview', false) == true);
+      }
+
+      function validWorld() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['createdBy', 'worldName', 'createdAt'])
+          && data.createdBy is string
+          && data.createdBy == request.auth.uid
+          && data.worldName is string
+          && data.worldName.size() > 0
+          && data.worldName.size() <= 100
+          && data.createdAt == request.time;
+      }
+
+      function validWorldUpdate() {
+        let data = request.resource.data;
+        return data.createdBy == resource.data.createdBy
+          && (!('worldName' in data) || (data.worldName is string && data.worldName.size() > 0 && data.worldName.size() <= 100));
+      }
+
+      allow read: if isOwner();
+      allow create: if willBeOwner() && validWorld()
+        && !isPreviewWorldId(worldId)
+        && !('ownerPreview' in request.resource.data);
+      allow update: if isOwner() && validWorldUpdate()
+        && !(isPreviewWorldId(worldId)
+          && resource.data.get('ownerPreview', false) == true)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerPreview']);
+      allow delete: if false;
+
+      // ───────────────────────────────────────────────────────────────────────
+      // World subcollections
+      // ───────────────────────────────────────────────────────────────────────
+
+      match /teams/{teamCode} {
+        allow read: if isLegacyWorldOwner();
+        allow create, update: if isLegacyWorldOwner();
+        allow delete: if false;
+
+        match /players/{playerId} {
+          allow read: if isLegacyWorldOwner();
+          allow create, update: if isLegacyWorldOwner();
+          allow delete: if false;
+        }
+      }
+    }
+
+    // Rules for worlds initialized by the protected owner Preview.
+    match /architect_worlds/{worldId} {
+      allow update: if isWorldMetadataOwner()
+        && isPreviewWorldId(worldId)
+        && resource.data.get('ownerPreview', false) == true
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'ownerPreview', 'worldId', 'parentWorldId'
+        ])
+        && !('worldLifecycle' in resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['worldLifecycle'])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && preservesDraftInventoryFence()
+        && preservesGovernedContractMetadata()
+        && preservesGovernedDraftMetadata()
+        && preservesSimulationFinancialMetadata()
+        && preservesDraftCopyMetadata()
+        && preservesPartialBranchCleanupClaim()
+        && preservesFinalizedChildLineage(worldId);
+
+      match /teams/{teamCode} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
+
+        match /players/{playerId} {
+          allow read: if isPreviewWorldOwner(worldId);
+          allow write: if isOpenForClientWorldWrites(worldId);
+        }
+
+        match /freeAgentPools/{seasonKey} {
+          allow read: if isPreviewWorldOwner(worldId);
+          allow write: if isOpenForClientWorldWrites(worldId);
+        }
+      }
+
+      match /events/{eventId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
+        allow update, delete: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId)
+          && resource.data.get('mutationType', '') != 'seasonAdvance'
+          && resource.data.get('type', '') != 'seasonAdvance';
+      }
+
+      // Certification is separate from custom history. Only trusted server
+      // transitions may publish receipts/head; no owner claim can opt in.
+      match /transitionProvenance/{recordId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow write: if false;
+      }
+
+      // Season-close snapshots and the league manifest are append-only. The
+      // transaction owns their deterministic identities; a client cannot edit
+      // or delete history after the 30-team transition commits.
+      match /seasonHistory/{historyId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasAll([
+            'schemaVersion',
+            'historyId',
+            'transitionId',
+            'worldId',
+            'teamCode',
+            'fromSeason',
+            'toSeason',
+            'seasonCloseDate',
+            'transitionEffectiveAt',
+            'preAdvanceState',
+            'preAdvanceStateDigest',
+            'finalRoster',
+            'finalRosterDigest',
+            'seasonCloseApronMeasurement',
+            'beforeTotals',
+            'afterTotals',
+            'contractEvents',
+            'entitlementStateDigest',
+            'authorityDigest'
+          ])
+          && request.resource.data.schemaVersion == 'season-history-v1'
+          && request.resource.data.historyId == historyId
+          && request.resource.data.worldId == worldId
+          && request.resource.data.transitionId is string
+          && publishesSeasonTransition(
+            worldId,
+            request.resource.data.transitionId,
+            request.resource.data.fromSeason,
+            request.resource.data.toSeason
+          )
+          && existsAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId))
+          && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId)).data.fromSeason == request.resource.data.fromSeason
+          && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId)).data.toSeason == request.resource.data.toSeason;
+        allow update, delete: if false;
+      }
+
+      match /seasonTransitions/{transitionId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasAll([
+            'schemaVersion',
+            'transitionId',
+            'operationId',
+            'eventId',
+            'worldId',
+            'fromSeason',
+            'toSeason',
+            'fromSalaryCapYear',
+            'toSalaryCapYear',
+            'seasonCloseDate',
+            'transitionEffectiveAt',
+            'committedAt',
+            'authority',
+            'authorityDigest',
+            'entitlementBoundary',
+            'preAdvanceMetadataDigest',
+            'teamRecords',
+            'reconciliation',
+            'canonLeafIds'
+          ])
+          && request.resource.data.schemaVersion == 'season-transition-manifest-v1'
+          && request.resource.data.transitionId == transitionId
+          && request.resource.data.eventId == transitionId
+          && request.resource.data.worldId == worldId
+          && request.resource.data.teamRecords is list
+          && request.resource.data.teamRecords.size() == 30
+          && request.resource.data.reconciliation.expectedTeamCount == 30
+          && request.resource.data.reconciliation.preparedTeamCount == 30
+          && request.resource.data.reconciliation.completeBookCount == 30
+          && request.resource.data.reconciliation.historyRecordCount == 30
+          && request.resource.data.reconciliation.entitlementPreservationCount == 30
+          && publishesSeasonTransition(
+            worldId,
+            transitionId,
+            request.resource.data.fromSeason,
+            request.resource.data.toSeason
+          );
+        allow update, delete: if false;
+      }
+
+      // A governed Offer Sheet is authored by the world owner, but its initial
+      // lifecycle identity becomes immutable once the atomic creation commits.
+      // Resolution compares the writable Team mirrors against this anchor.
+      match /offerSheetAuthorizations/{offerSheetId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasOnly([
+            'authorizationVersion',
+            'worldId',
+            'offerSheetId',
+            'dedupKey',
+            'playerId',
+            'homeTeamId',
+            'offeringTeamId',
+            'salaryCapYear',
+            'pendingLifecycleDigest',
+            'immutableEvidenceDigest'
+          ])
+          && request.resource.data.authorizationVersion == 1
+          && request.resource.data.worldId == worldId
+          && request.resource.data.offerSheetId == offerSheetId
+          && request.resource.data.dedupKey is string
+          && request.resource.data.dedupKey.size() > 0
+          && request.resource.data.playerId is string
+          && request.resource.data.playerId.size() > 0
+          && request.resource.data.homeTeamId is string
+          && request.resource.data.homeTeamId.size() > 0
+          && request.resource.data.offeringTeamId is string
+          && request.resource.data.offeringTeamId.size() > 0
+          && request.resource.data.salaryCapYear is int
+          && request.resource.data.pendingLifecycleDigest is string
+          && request.resource.data.pendingLifecycleDigest.matches('^fnv1a64:[0-9a-f]{16}$')
+          && request.resource.data.immutableEvidenceDigest is string
+          && request.resource.data.immutableEvidenceDigest.matches('^fnv1a64:[0-9a-f]{16}$');
+        allow update, delete: if false;
+      }
+
+      match /entitlements/{entitlementId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
+      }
+
+      // Governed roots are created only by initializeArchitectWorld through the
+      // Admin SDK. Browsers can read their own shards but can never author them.
+      match /contractBaselines/{shardId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow create, update, delete: if false;
+      }
+
+      match /draftBaselines/{shardId} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow create, update, delete: if false;
+      }
+
+      // Unknown world subcollections fail closed; supported writable paths are
+      // declared above so immutable governed state cannot inherit a broad write.
+      match /{document=**} {
+        allow read: if isPreviewWorldOwner(worldId);
+        allow write: if false;
+      }
+    }
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEGACY: players_v2 public read-only
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /players_v2/{playerId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /{document=**} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+  }
+}

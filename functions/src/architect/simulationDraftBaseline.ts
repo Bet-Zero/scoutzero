@@ -22,7 +22,10 @@ export async function loadSimulationDraftBaseline(
   readObject?: ReadStorageObject
 ) {
   const bytes = await readSimulationPackageBytes('draft', readObject);
-  if (!bytes) return null;
+  return bytes ? parseSimulationDraftBaseline(bytes) : null;
+}
+
+export function parseSimulationDraftBaseline(bytes: Buffer) {
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const baseline = JSON.parse(
     bytes.toString('utf8')

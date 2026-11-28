@@ -131,7 +131,7 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(worldSelectorSource).toContain('archiveWorld,');
     expect(worldSelectorSource).toContain('await archiveWorld(worldId, userId);');
     expect(worldSelectorSource).toContain(
-      'const result = (await purgeWorld(worldId)) as PurgeResultLike;'
+      'const result = (await purgeWorld(deleteWorldId)) as PurgeResultLike;'
     );
     expect(worldSelectorSource).not.toContain('await deleteWorld(');
     expect(worldSelectorSource).not.toContain(

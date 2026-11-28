@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/architect/world.ts": {
+      "maxDuration": 120,
+      "includeFiles": "public/architect/contract-source-releases/*.json"
+    }
+  },
   "routes": [
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "status": 404 },
