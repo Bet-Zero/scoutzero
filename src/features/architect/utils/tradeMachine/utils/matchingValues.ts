@@ -82,6 +82,8 @@ export interface MatchingValuePlayer {
   matchOutgoing?: number;
   matchIncoming?: number;
   governedTradeSalaryBasis?: GovernedTradeSalaryBasis | unknown;
+  /** Why the team's salary authority could not be loaded, when it could not. */
+  governedTradeSalaryBasisLoadError?: unknown;
   governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
 }
 
@@ -359,11 +361,16 @@ export function computeMatchingValues({
         const expectedDate =
           typeof asOfDate === 'string' ? asOfDate.slice(0, 10) : null;
         if (!parsed.success) {
+          const loadError =
+            typeof player.governedTradeSalaryBasisLoadError === 'string'
+              ? player.governedTradeSalaryBasisLoadError.trim()
+              : '';
           salaryBasisIssues.push({
             playerId,
             teamId,
-            reason:
-              'Governed player salary-basis authority is missing or malformed.',
+            reason: loadError
+              ? `Governed player salary-basis authority could not be loaded: ${loadError}`
+              : 'Governed player salary-basis authority is missing or malformed.',
           });
           player.matchOutgoing = 0;
           player.matchIncoming = 0;

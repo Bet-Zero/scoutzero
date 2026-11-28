@@ -57,6 +57,7 @@ import {
   resolveUsableActiveWorldId,
   seasonEndYearsFromCaps,
   seasonEndYearsForWorld,
+  worldViewingSeasonEndYear,
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
 import { readRoomFromUrl } from './useArchitectDeskNavigation';
@@ -171,6 +172,22 @@ export function useArchitectState({
       requestedSeasonRef.current = 0;
       setCurrentYear(requested);
     }
+  }, [worldId, teamCapSheet, worldCurrentSeason]);
+  // Open each saved world on its own season, once per world and season (a
+  // season advance changes it). The viewer may still switch seasons after.
+  const appliedWorldSeasonRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!worldId || !worldCurrentSeason) return;
+    const key = `${worldId}:${worldCurrentSeason}`;
+    if (appliedWorldSeasonRef.current === key) return;
+    const year = worldViewingSeasonEndYear(
+      capProjections,
+      teamCapSheet,
+      worldCurrentSeason
+    );
+    if (year === null) return;
+    appliedWorldSeasonRef.current = key;
+    setCurrentYear(year);
   }, [worldId, teamCapSheet, worldCurrentSeason]);
   const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(
     null

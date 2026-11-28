@@ -12,6 +12,7 @@ import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitleme
 import { type PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import {
+  attachGovernedTradeSalaryBasisLoadErrorToRoster,
   attachGovernedTradeSalaryBasisToRoster,
   loadWorldGovernedTradeSalaryBasisEntries,
   resolveTradeSalaryBasisPlayerId,
@@ -103,6 +104,10 @@ export function useTradeMachineTeamOps({
           if (!salaryBasisTeamId) {
             teamObj.governedTradeSalaryBasisLoadError =
               'Governed Trade Machine salary authority requires a Team identity.';
+            teamObj.players = attachGovernedTradeSalaryBasisLoadErrorToRoster(
+              rosterPlayers,
+              teamObj.governedTradeSalaryBasisLoadError
+            );
           } else {
             try {
               const salaryBasis =
@@ -122,6 +127,10 @@ export function useTradeMachineTeamOps({
                 error instanceof Error
                   ? error.message
                   : 'Governed Trade Machine salary authority could not be loaded.';
+              teamObj.players = attachGovernedTradeSalaryBasisLoadErrorToRoster(
+                rosterPlayers,
+                teamObj.governedTradeSalaryBasisLoadError
+              );
             }
           }
         }
