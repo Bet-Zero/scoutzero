@@ -76,9 +76,10 @@ proof joins them.
 | [BZE-356](https://linear.app/bzero/issue/BZE-356) | The shared current-season roster policy in Guide landed in [#677](https://github.com/Bet-Zero/scoutzero/pull/677). | BZE-349 |
 | [BZE-357](https://linear.app/bzero/issue/BZE-357) | Show unknown stretch status accurately. Landed in [#681](https://github.com/Bet-Zero/scoutzero/pull/681). | BZE-355 |
 | [BZE-362](https://linear.app/bzero/issue/BZE-362) | Show signed cap and apron space in the shared team status strip. Landed in [#682](https://github.com/Bet-Zero/scoutzero/pull/682). | Existing salary books |
-| [BZE-364](https://linear.app/bzero/issue/BZE-364) | Explain why an ordinary signing cannot proceed in Free Agency. | BZE-350, BZE-351 |
+| [BZE-364](https://linear.app/bzero/issue/BZE-364) | Explain why an ordinary signing cannot proceed in Free Agency. Landed in [#683](https://github.com/Bet-Zero/scoutzero/pull/683). | BZE-350, BZE-351 |
 | [BZE-363](https://linear.app/bzero/issue/BZE-363) | Distinguish a dated tax projection from a final assessment. | BZE-350; CBA2-C08.1 |
 | [BZE-365](https://linear.app/bzero/issue/BZE-365) | Show exception creation and use in Compare from committed records. | BZE-352 |
+| [BZE-366](https://linear.app/bzero/issue/BZE-366) | Load earlier saved moves in Compare before reporting the original-baseline salary change. | BZE-365 |
 
 ## Inspect current action inputs
 
@@ -156,7 +157,7 @@ or evidence is sufficient to start.
 | ARCH-014 | Reconcile ordinary seconds by team/year and reuse connected-rights custody. Prove transfer, reload, branch and history without duplicate claims. | 030 versioning, 015 receipt/Compare path |
 | ARCH-015 | Surface actual pick and connected-right deltas from saved receipts. Prove before/after for all affected teams after reload. | Existing #659 receipts and integrated 001 for candidate proof |
 | ARCH-016 | Show exception creation/consumption in Compare. Prove net and per-move effects from retained records. | 006 for representative trades; included in 026 proof |
-| ARCH-017 | Paginate Compare from the original baseline. Prove 51+ events, earlier deltas, branch and reload. | Existing snapshot/event models; 015/016 for combined proof |
+| ARCH-017 | Paginate Compare from the original baseline in BZE-366. Prove 51+ events, earlier deltas, branch and reload. | Existing snapshot/event models; 015/016 for combined proof |
 | ARCH-018 | Attribute opening obligations separately from saved moves. Prove an empty new timeline and correctly attributed new waiver after reload. | Existing history/waiver model |
 | ARCH-019 | Preserve explicit stretched, explicit unstretched and unknown with unchanged underlying money. | 018 attribution fixtures |
 | ARCH-020 | Reuse roster policy in Guide. Prove 15+3, each excess and unknown list state. | 003 |
