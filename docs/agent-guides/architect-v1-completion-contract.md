@@ -59,9 +59,11 @@ and freeze. A genuinely missing decisive asset fact remains visibly unavailable;
 future-season progression is not grounds for excluding current rights. No B5
 scope decision remains pending.
 
-Production baseline publication/deployment/activation, existing-world migration,
-provider outreach and purchases retain separate authorization gates. Final V1
-acceptance still requires the owner's hands-on review.
+Reviewed merges to `main` deliver Architect on the normal ScoutZero site
+(owner direction, 2026-11-28). Private baseline publication, shared Firebase
+deployments, permission changes, existing-world migration, provider outreach
+and purchases retain separate authorization gates. Final V1 acceptance still
+requires the owner's hands-on review.
 
 ## Owner decisions, 2026-11-10 (these override conflicting text below)
 
@@ -87,8 +89,8 @@ current status live in
    Exception are post-V1 and must show needs-input. Later discoveries are
    post-V1 unless they are defects in a listed item.
 4. **Activation.** First-round trading is enabled in new simulation worlds once
-   the starting world is installed; existing worlds are not migrated. The
-   production deploy is confirmed with the owner once, immediately before it ships.
+   the starting world is installed. Existing worlds stay on their own baselines.
+   The normal delivery and publication rules above govern installation.
 5. **Proof.** Tests and independent review remain required for legality,
    financial and persistence changes. Per-change retained browser certificates
    are replaced by the final live scenario battery.

@@ -65,10 +65,11 @@ complete supported universe.
   source against this architecture. Security checks or a code-level ACCEPT do
   not approve a provider choice. Production source writes and migration of
   existing saved worlds keep their separate authorization gates. First-round
-  Apply in new simulation worlds is owner-approved (2026-11-10); the production
-  deploy that enables it is confirmed with the owner once, immediately before
-  it ships.
-  Hosted read/review proof is required before landing hosted delivery.
+  Apply in new simulation worlds is owner-approved (2026-11-10). Use the
+  normal ScoutZero account and reviewed `main` delivery path (2026-11-28).
+  Verify hosted behavior when delivering it. First installation of the private
+  baseline and changes to shared runtime permissions, Rules or indexes remain
+  separate operations.
 
 - Owner-directed subjective design waves and other approval-bound UI work need
   owner sign-off on screenshots before landing. An explicitly requested isolated
