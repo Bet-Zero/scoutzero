@@ -383,7 +383,7 @@ const toWaivedContractEntryFromDeadCap = (
       : null;
 
   const deadCapByYear: Record<string, number> = {};
-  let stretched = false;
+  const stretchFlags: unknown[] = [];
 
   const amountByYear = record.amountByYear;
   if (Array.isArray(amountByYear)) {
@@ -395,9 +395,7 @@ const toWaivedContractEntryFromDeadCap = (
       if (yearKey && amount != null) {
         deadCapByYear[yearKey] = (deadCapByYear[yearKey] || 0) + amount;
       }
-      if (rowRecord.isStretched === true) {
-        stretched = true;
-      }
+      stretchFlags.push(rowRecord.isStretched);
     }
   } else {
     const amountByYearMap = asRecord(amountByYear);
@@ -411,15 +409,20 @@ const toWaivedContractEntryFromDeadCap = (
         if (yearKey && amount != null) {
           deadCapByYear[yearKey] = (deadCapByYear[yearKey] || 0) + amount;
         }
-        if (valueRecord?.isStretched === true) {
-          stretched = true;
-        }
+        stretchFlags.push(valueRecord?.isStretched);
       }
     }
   }
 
   if (!playerId && !playerName && Object.keys(deadCapByYear).length === 0) {
     return null;
+  }
+
+  let stretched: boolean | null = null;
+  if (stretchFlags.includes(true)) {
+    stretched = true;
+  } else if (stretchFlags.length > 0 && stretchFlags.every((flag) => flag === false)) {
+    stretched = false;
   }
 
   // The source-team stager records carried debt this way. The entry survives
@@ -491,8 +494,9 @@ const toWaivedContractEntryFromWaiveEvent = (
       : typeof record.timestamp === 'string'
         ? record.timestamp
         : null;
-  const stretched =
-    mutationMetadata.stretched === true || metadata.stretched === true;
+  const reportedStretch = [mutationMetadata.stretched, metadata.stretched]
+    .find((flag) => typeof flag === 'boolean');
+  const stretched = typeof reportedStretch === 'boolean' ? reportedStretch : null;
 
   return {
     id: playerId || null,
@@ -608,7 +612,7 @@ const buildWaivedContractTimelineEntry = (
         title: 'Waiver Record',
         lines: [
           `Player: ${playerName}`,
-          `Stretch provision: ${entry?.stretched ? 'Yes' : 'No'}`,
+          `Stretch provision: ${entry?.stretched == null ? 'Unknown' : entry.stretched ? 'Yes' : 'No'}`,
           deadCapLines.length > 0
             ? `Dead cap breakdown: ${deadCapLines.join('; ')}`
             : 'No dead cap breakdown was recorded',

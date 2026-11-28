@@ -65,15 +65,19 @@ proof joins them.
 | [BZE-347](https://linear.app/bzero/issue/BZE-347) | Main contract-history validation restored in [#666](https://github.com/Bet-Zero/scoutzero/pull/666) | First |
 | [BZE-358](https://linear.app/bzero/issue/BZE-358) | Normal site delivery and both History index definitions landed in [#676](https://github.com/Bet-Zero/scoutzero/pull/676). The former BZE-348 rollout is superseded. | BZE-347 |
 | [BZE-360](https://linear.app/bzero/issue/BZE-360) | [#678](https://github.com/Bet-Zero/scoutzero/pull/678) reads compressed, pinned starting packages directly from private Firestore documents. | Existing private packages and repository Rules |
-| [BZE-359](https://linear.app/bzero/issue/BZE-359) | Create a current 2026–27 world on the main site as a normal account. Verify private runtime inputs, existing worlds and account isolation. | BZE-360, authorized private installation and the applicable runtime, Rules and index setup |
+| [BZE-361](https://linear.app/bzero/issue/BZE-361) | [#680](https://github.com/Bet-Zero/scoutzero/pull/680) shares trusted world initialization across server runtimes. | Existing callable and baseline logic |
+| [BZE-359](https://linear.app/bzero/issue/BZE-359) | Create a current 2026–27 world on the main site as a normal account. Verify private runtime inputs, existing worlds and account isolation. | BZE-360, BZE-361, authorized private installation and the applicable runtime, Rules and index setup |
 | [BZE-349](https://linear.app/bzero/issue/BZE-349) | Current standard and Two-Way trade ceilings landed in [#670](https://github.com/Bet-Zero/scoutzero/pull/670). Dated shortage and hardship remain open under ARCH-003 and ARCH-052. | BZE-347 |
 | [BZE-350](https://linear.app/bzero/issue/BZE-350) | First action-readiness slice landed in [#669](https://github.com/Bet-Zero/scoutzero/pull/669) | BZE-347, alongside BZE-349 |
 | [BZE-351](https://linear.app/bzero/issue/BZE-351) | Dated ordinary signing proration landed in [#672](https://github.com/Bet-Zero/scoutzero/pull/672). November Minimum, January full-value exception and post-deadline reduced exception signings saved and reloaded. | BZE-349, BZE-350 |
 | [BZE-352](https://linear.app/bzero/issue/BZE-352) | Dated trade figures landed in [#673](https://github.com/Bet-Zero/scoutzero/pull/673). Ordinary and mixed deals saved and reloaded with the money fields blank. | BZE-351 in the original sequence. This independently reviewable change proceeded during its review. |
 | [BZE-354](https://linear.app/bzero/issue/BZE-354) | The first date guard landed in [#674](https://github.com/Bet-Zero/scoutzero/pull/674). It refused rewinds and year changes and preserved a forward edit on reload. | BZE-347 |
-| [BZE-355](https://linear.app/bzero/issue/BZE-355) | Attribute opening obligations separately in History. | Existing waiver and History models |
+| [BZE-355](https://linear.app/bzero/issue/BZE-355) | Attribute opening obligations separately in History. Landed in [#679](https://github.com/Bet-Zero/scoutzero/pull/679). | Existing waiver and History models |
 | [BZE-356](https://linear.app/bzero/issue/BZE-356) | The shared current-season roster policy in Guide landed in [#677](https://github.com/Bet-Zero/scoutzero/pull/677). | BZE-349 |
 | [BZE-357](https://linear.app/bzero/issue/BZE-357) | Show unknown stretch status accurately. | BZE-355 |
+| [BZE-362](https://linear.app/bzero/issue/BZE-362) | Show signed cap and apron space in the shared team status strip. | Existing salary books |
+| [BZE-364](https://linear.app/bzero/issue/BZE-364) | Explain why an ordinary signing cannot proceed in Free Agency. | BZE-350, BZE-351 |
+| [BZE-363](https://linear.app/bzero/issue/BZE-363) | Distinguish a dated tax projection from a final assessment. | BZE-350; CBA2-C08.1 |
 
 ## Inspect current action inputs
 

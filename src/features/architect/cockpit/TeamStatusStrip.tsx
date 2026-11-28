@@ -33,9 +33,7 @@ interface TeamStatusStripProps {
   orientation?: 'horizontal' | 'vertical';
 }
 
-// Abbreviated money so the posture reads like a clean dashboard ($239.3M), not
-// a spreadsheet ($239,343,312). No minus sign — the tile color already conveys
-// negative (red). Millions always carry one decimal ($211.0M, not $211M).
+// Compact magnitudes for salary totals and headlines with directional wording.
 export const formatMoney = (amount: number | null): string => {
   if (amount === null) return 'Needs input';
   if (!Number.isFinite(amount)) return '—';
@@ -49,6 +47,12 @@ export const formatMoney = (amount: number | null): string => {
   return `$${Math.round(abs)}`;
 };
 
+const formatSpace = (amount: number | null): string => {
+  const magnitude = formatMoney(amount);
+  return amount !== null && Number.isFinite(amount) && amount < 0
+    ? `−${magnitude}`
+    : magnitude;
+};
 
 const HardCapLock = ({ heading, reason }: { heading: string; reason: string }) => (
   <div
@@ -152,7 +156,7 @@ export const TeamStatusStrip = ({
       <TeamStatusTile
         testId="cockpit-status-cap-space"
         label="Cap Space"
-        value={formatMoney(cap.capSpace)}
+        value={formatSpace(cap.capSpace)}
         valueClassName={spaceColor(cap.capSpace)}
         dense={dense}
       />
@@ -180,7 +184,7 @@ export const TeamStatusStrip = ({
       <TeamStatusTile
         testId="cockpit-status-apron2"
         label="2nd Apron Space"
-        value={formatMoney(cap.secondApronSpace)}
+        value={formatSpace(cap.secondApronSpace)}
         valueClassName={spaceColor(cap.secondApronSpace)}
         badge={secondApronBadge}
         dense={dense}
@@ -251,7 +255,7 @@ export const TeamStatusStrip = ({
     spaceTiles(true);
   return (
     <section
-      className="grid w-full shrink-0 grid-cols-6 gap-1.5"
+      className="grid w-full shrink-0 grid-cols-[repeat(6,minmax(7rem,1fr))] gap-1.5 overflow-x-auto sm:grid-cols-6"
       data-testid="cockpit-team-status-strip"
       data-state="ready"
       data-orientation={orientation}

@@ -10,6 +10,27 @@ import { describe, expect, it } from 'vitest';
 import { resolveWaivedContractDisplayEntries } from '@/features/architect/history/TeamHistoryTab/TeamHistoryTab.helpers';
 
 describe('resolveWaivedContractDisplayEntries', () => {
+  it('keeps unstated stretch status separate from documented yes or no', () => {
+    const entries = resolveWaivedContractDisplayEntries({
+      deadCap: [
+        { playerId: 'undocumented', amountByYear: [{ season: '2026-27', amount: 250_000 }] },
+        { playerId: 'unstretched', amountByYear: [{ season: '2026-27', amount: 275_000, isStretched: false }] },
+        { playerId: 'stretched', amountByYear: { '2027': { amount: 300_000, isStretched: true } } },
+        { playerId: 'incomplete', amountByYear: [
+          { season: '2026-27', amount: 345_000, isStretched: false },
+          { season: '2027-28', amount: 345_000 },
+        ] },
+      ],
+    }, [{ mutationType: 'waivePlayer', playerIds: ['receipt-without-stretch'] }]);
+    expect(entries.map(({ stretched, deadCap }) => [stretched, deadCap])).toEqual([
+      [null, { '2027': 250_000 }],
+      [false, { '2027': 275_000 }],
+      [true, { '2027': 300_000 }],
+      [null, { '2027': 345_000, '2028': 345_000 }],
+      [null, {}],
+    ]);
+  });
+
   it('marks retained opening debt and preserves a later zero-dead-money waiver of the same player', () => {
     const opening = {
       playerId: 'p1',
