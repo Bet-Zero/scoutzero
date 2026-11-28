@@ -20,6 +20,11 @@ date, in which a GM can make, validate, save and reload trades. The June 5
 packages and accepted engines and proofs, including PR #656, are preserved as
 historical evidence.
 
+Added to V1 (owner said in chat, November 28): Sandbox, Architect without a
+saved world, is the primary experience. It shows the same current snapshot
+with the same rules and money as an untouched new world (contract decision 7,
+workflow W16). See Phase 2b.
+
 ## Working rule
 
 Take the next unchecked item. Finishing an item is permission to start the next
@@ -88,6 +93,22 @@ changes V1 scope.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
       DPE grants stay post-V1 (needs-input).
+
+## Phase 2b: Sandbox on the current snapshot (added November 28)
+
+- [ ] S1 The shared NBA data that Sandbox reads holds the same current 2026-27
+      snapshot as the new-world baseline. Publishing to production needs the
+      owner's OK under AGENTS.md.
+- [ ] S2 Sandbox evaluates every date-dependent rule at that snapshot's stated
+      date and shows the date. Today it assumes July 15 of the viewed season.
+- [ ] S3 Sandbox and an untouched new world from the same snapshot produce the
+      same books, salary-matching amounts, exceptions, hard caps, draft rights
+      and verdicts. Today Sandbox uses a different salary path and a different
+      draft-source revision. Invented inputs are removed: placeholder TPEs
+      (PR #690) and default free-agent exception amounts (this change).
+- [ ] S4 Sandbox wording reads as a first-class workspace. Today the selector
+      says "local preview" and "Saved worlds are the primary Architect
+      workspace".
 
 ## Phase 3: remaining trade mechanisms
 
