@@ -16,24 +16,18 @@ The Phase 3A execution guide is archived. For exact NBA rules use
    [#666](https://github.com/Bet-Zero/scoutzero/pull/666). The
    [full main workflow](https://github.com/Bet-Zero/scoutzero/actions/runs/46078698577)
    verified the repair.
-2. **Reconcile the release candidate.** The reviewed draft
-   [#668](https://github.com/Bet-Zero/scoutzero/pull/668) integrates #665
-   with green main and preserves #664's workflow and guide retirement.
-   #662 is an ancestor of #665. Keep its lifecycle and recovery. Preserve #660's
-   accepted Node 22 Functions manifest/lock and optional callable runtime
-   identity work as a held compatibility change. Confirm that need against
-   the selected runtime before porting it. The proven HTTP route can operate
-   without activating those callables. Use the owner-approved no-billing route.
-   Keep automatic Vercel deployment disabled for the new integration branch
-   before pushing it. Existing branch holds cover only named branches.
-   Carry forward server module/startup,
-   same-origin owner access, deletion fences and the slug/code inventory fix.
-   Use the signed-in hosted create/trade/reload/history/delete/recreate evidence
-   at its recorded scope. The next release must account for required indexes,
-   Rules, runtime and scoped older-world proof. Commit reproducible index
-   definitions and retain the reviewed before-image for authorized Rules
-   changes. Keep all three PRs until their
-   unique changes and evidence have a durable disposition.
+2. **Deliver on the normal ScoutZero site.** Vercel automatically deploys
+   reviewed `main` merges. Use normal accounts and account-owned worlds. The
+   owner-only rollout, branch holds and per-build private inputs were
+   temporary. Keep the reviewed [#668](https://github.com/Bet-Zero/scoutzero/pull/668)
+   draft as a source for the proven lifecycle, deletion fences, recovery,
+   slug/code fix and signed-in evidence. Bring over the parts needed for each
+   normal-site change. #662 is in #665's ancestry. Reuse #660's Node 22 and
+   callable identity changes if the chosen runtime requires them.
+   History index definitions belong in Git. Install private versioned inputs
+   once through an authorized runtime path and verify new worlds with normal
+   sign-in. Keep existing worlds on their original baselines. Use existing
+   free infrastructure where feasible.
    [#665](https://github.com/Bet-Zero/scoutzero/pull/665) ·
    [#662](https://github.com/Bet-Zero/scoutzero/pull/662) ·
    [#660](https://github.com/Bet-Zero/scoutzero/pull/660)
@@ -55,25 +49,30 @@ The Phase 3A execution guide is archived. For exact NBA rules use
 5. **Close V1 through its checklist.** Reuse accepted engines, atomic writes,
    revision and digest protections and valid case evidence. Add focused proof
    for changed or missing behavior and then one integrated scenario battery.
-   Release, source-data writes, Rules/index publication, migration, billing,
-   settings changes and merge require their existing authorizations. Obtain
-   the owner's hands-on acceptance for E2.
+   Routine merges use the owner's standing authorization. Private publication,
+   shared Firebase deployments, permissions, migration, billing and material
+   scope decisions require separate authorization. Obtain the owner's
+   hands-on acceptance for E2.
 
 ## Active queue
 
-The step issues are children of BZE-243. Main health is the first gate. The
-integration candidate and ordinary defects can use the green base independently
-where their code and proof do not overlap. Final integrated proof joins them.
+The step issues are children of BZE-243. The normal-account baseline and
+ordinary correctness work proceed independently on green main. Final V1
+proof joins them.
 
 | Issue | Outcome | Prerequisite |
 | --- | --- | --- |
 | [BZE-347](https://linear.app/bzero/issue/BZE-347) | Main contract-history validation restored in [#666](https://github.com/Bet-Zero/scoutzero/pull/666) | First |
-| [BZE-348](https://linear.app/bzero/issue/BZE-348) | [Draft #668](https://github.com/Bet-Zero/scoutzero/pull/668) holds the protected release candidate and current and legacy History index definitions. Compare deployed Rules and indexes and obtain release authorization. | BZE-347 and the current implementation baseline |
+| [BZE-358](https://linear.app/bzero/issue/BZE-358) | Use normal site delivery and retain current and legacy History index definitions. The former BZE-348 rollout is superseded. | BZE-347 |
+| [BZE-359](https://linear.app/bzero/issue/BZE-359) | Create a current 2026–27 world on the main site as a normal account. Verify private runtime inputs, existing worlds and account isolation. | Approved private starting packages and the applicable runtime, Rules and index setup |
 | [BZE-349](https://linear.app/bzero/issue/BZE-349) | Current standard and Two-Way trade ceilings landed in [#670](https://github.com/Bet-Zero/scoutzero/pull/670). Dated shortage and hardship remain open under ARCH-003 and ARCH-052. | BZE-347 |
 | [BZE-350](https://linear.app/bzero/issue/BZE-350) | First action-readiness slice landed in [#669](https://github.com/Bet-Zero/scoutzero/pull/669) | BZE-347, alongside BZE-349 |
 | [BZE-351](https://linear.app/bzero/issue/BZE-351) | Dated ordinary signing proration landed in [#672](https://github.com/Bet-Zero/scoutzero/pull/672). November Minimum, January full-value exception and post-deadline reduced exception signings saved and reloaded. | BZE-349, BZE-350 |
 | [BZE-352](https://linear.app/bzero/issue/BZE-352) | Dated trade figures landed in [#673](https://github.com/Bet-Zero/scoutzero/pull/673). Ordinary and mixed deals saved and reloaded with the money fields blank. | BZE-351 in the original sequence. This independently reviewable change proceeded during its review. |
 | [BZE-354](https://linear.app/bzero/issue/BZE-354) | The first date guard landed in [#674](https://github.com/Bet-Zero/scoutzero/pull/674). It refused rewinds and year changes and preserved a forward edit on reload. | BZE-347 |
+| [BZE-355](https://linear.app/bzero/issue/BZE-355) | Attribute opening obligations separately in History. | Existing waiver and History models |
+| [BZE-356](https://linear.app/bzero/issue/BZE-356) | Apply the shared current-season roster policy in Guide. | BZE-349 |
+| [BZE-357](https://linear.app/bzero/issue/BZE-357) | Show unknown stretch status accurately. | BZE-355 |
 
 ## Inspect current action inputs
 
@@ -90,7 +89,7 @@ terms. Keep private source files and inspection output outside Git.
 
 ## Proposed full Architect scope
 
-Propose a private multi-season GM simulator. Select a finite supported horizon
+Propose a multi-season GM simulator within ScoutZero. Select a finite supported horizon
 and projection policy before implementation, with two consecutive complete
 annual transitions as the minimum proof. Cover ordinary first/second-round
 portfolios, obligation settlement, rookie rights/outcomes, options/extensions,
@@ -122,8 +121,8 @@ Numbers in **After** refer to ARCH IDs. A dependency can supply an
 implementation input or a later proof. Three feedback loops have distinct
 entry and exit steps:
 
-- Integrate 001 first, prove 027 and 029–034 against that candidate, then
-  finish 001 release readiness and seek 035 acceptance.
+- Land ordinary fixes incrementally. Integrate 001 through normal accounts,
+  reusing relevant 027 and 029–034 proof, then seek 035 V1 acceptance.
 - Define 030 version identity first, implement 012 and 061, then rehearse
   030 rotation across new and existing worlds.
 - Agree 037, define 036 transition seams and 040 provenance requirements,
@@ -135,7 +134,7 @@ or evidence is sufficient to start.
 
 | Finding | Disposition and finish condition | After |
 | --- | --- | --- |
-| ARCH-001 | Implement the main repair and integrate the protected lifecycle. Prove integrated build and affected lifecycle paths, then use the result in release acceptance. | BZE-347 first; stable release also needs 027, 029–034 |
+| ARCH-001 | Main repair is merged. Integrate the needed lifecycle for normal account-owned worlds, reusing the retained Preview proof. Verify affected lifecycle paths on the normal site. | BZE-347 first; BZE-359 and relevant 027, 029–034 for normal V1 delivery |
 | ARCH-002 | Correct live pointers to checklist, candidate and next issue. Retain historical records and label their evidence accurately. | — |
 | ARCH-003 | Use dated roster policy at preflight and before any saved-trade write. Prove 15 standard plus 3 Two-Way, rejection of either excess, and applicable dated exceptions/grace. | BZE-347; CBA2-R06.8, CBA2-C20.1 |
 | ARCH-004 | Guard unsupported date moves in BZE-354. Prove a forward move, rewind refusal and year-boundary refusal. Keep pending offers, options and prior actions in the later progression proof. | BZE-347 now; 036/037 for future progression |
@@ -164,12 +163,12 @@ or evidence is sufficient to start.
 | ARCH-027 | Prove duplicate retry, stale tab, interrupted response and atomic multi-team no-partial-write behavior. | 001 candidate |
 | ARCH-028 | Prove independent branching and parent/child constraints. Owner chooses recovery depth and capacity; demonstrate an authorized restore if promised. | 027, 029, 030; 060 for pending offers |
 | ARCH-029 | Prove preservation for the relevant older-world cohort or approved representatives. Record regenerated fixtures and missing original exports at their actual scope. | 001, 027, 030 version identity; reuse #659 proof |
-| ARCH-030 | Define private version/hash/recovery and intentional refresh policy. Prove clean rebuild and old-world stability across rotation. | Design before 012/061; rotation after both and 031 build recipe |
-| ARCH-031 | Reconcile runtime, Rules and required indexes, including History/Recent Moves. Prove repeatable package/build and both current/legacy queries on authorized target. | 001 candidate and 030 manifest; deployment approval |
-| ARCH-032 | Prove remaining effective access boundaries for candidate, least privilege and private package isolation. Reuse the recorded signed-in journey. | 001, 031; permission changes reserved |
-| ARCH-033 | Measure resource use and shared headroom, then let owner choose sufficient scenario capacity and recovery budget. | 027, 030, 031; 028 recovery choice for final limits |
+| ARCH-030 | Define private runtime version/hash/recovery and intentional refresh policy. Verify prior worlds still use their original versions after rotation. | Design before 012/061; rotation after both and 031 runtime setup |
+| ARCH-031 | Use normal Git delivery and version the needed History/Recent Moves indexes. Verify the trusted runtime, deployed Rules and both query shapes when the hosted baseline is installed. | 001 and 030 for hosted baseline; authorization for shared Firebase changes |
+| ARCH-032 | Verify normal account ownership, runtime least privilege and private package isolation. Reuse proof of unchanged behavior. | 001, 031; permission changes reserved |
+| ARCH-033 | Check existing quotas for actual usage. Bring a capacity, recovery or cost decision only when the intended workload requires it. | 027, 030, 031; 028 for selected recovery |
 | ARCH-034 | Apply scoped green checks and fresh independent review where required. Optional branch/ruleset enforcement is an owner settings decision. | Current AGENTS; verify at 001/035 |
-| ARCH-035 | Obtain authorized D2 delivery and E2 hands-on acceptance of a concrete release, with explicit capabilities and limitations. | 001, 026, 029–034 |
+| ARCH-035 | Complete D2 on the normal site and obtain E2 hands-on acceptance of the current-season V1 milestone, with explicit capabilities and limitations. | 001, 026, applicable 029–034 |
 | ARCH-036 | Define transition seams after future authority; use the existing 30-team engine. Prove two consecutive atomic annual transitions across all teams, branches and reloads. | 004, 037 for seams; 038–040 for full proof |
 | ARCH-037 | Owner selects horizon/projection policy. Establish versioned future calendar and levels, preserve known actuals and expose projections on replay. | 030 version policy |
 | ARCH-038 | Settle protected, pooled, swap and frozen rights from simulated results, preserving lineage and all parties. | 014, 037 and 036 transition seams |

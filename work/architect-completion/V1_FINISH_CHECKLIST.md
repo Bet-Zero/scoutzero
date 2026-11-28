@@ -46,8 +46,10 @@ existing-world migration, provider outreach or purchases are authorized here.
    in a listed item. Poison pill, performance incentives, nonzero trade bonuses
    and the Disabled Player Exception are post-V1 and show needs-input.
 4. **First-round trading turns on in new simulation worlds** after Phase 1.
-   Existing saved worlds are not migrated. The production switch-on/deploy is
-   confirmed with the owner once, immediately before it ships.
+   Reviewed `main` merges deliver to the normal site (owner direction,
+   2026-11-28). Existing saved worlds stay on their own baselines. The first
+   hosted private baseline installation and any shared Firebase changes have
+   separate authorization.
 5. **Proportionate proof.** Tests and independent Claude review stay on every
    legality, financial and saving change. Per-PR retained browser certificates
    and hash bundles are replaced by the final acceptance battery (E1).
@@ -104,27 +106,18 @@ that changes the plan.
       Copies retain server-established Contract roots even after the active
       starting package changes; historical release validation is preserved.
 
-## Phase 2: switch it on (owner confirms the deploy)
+## Phase 2: deliver on the normal site
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
-- [ ] D2 Normal Create World uses the current 2026-27 baseline; functions and
-      rules deployed only with authorization. Both historical private packages
-      are recoverable/rebuildable; both current private packages are prepared
-      and reproduce byte-for-byte. Local ordinary Create uses those current
-      inputs. This does not authorize installation or activation in production.
-      Executor inspection found no ADC, Firebase login account/token or deploy
-      environment credential. The existing GitHub Google identities are bounded
-      data workers, not Functions deployment authority; repository secret-name
-      inspection returned HTTP 403, so other hosted credentials are unverified.
-      The connected Vercel account exposes no accessible projects; it did not
-      provide another Firebase authentication route.
-      Smallest safe path: an existing deployment-authorized maintainer uses their
-      authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
-      CLI with that existing account; then run read-only project/permission checks.
-      No replacement service account/key or broad IAM grant is needed by default.
-      Deployment, private uploads and activation still need separate authorization.
-      Production remains off.
-      Hosting stays on Vercel; Firebase supplies Functions/Firestore/private storage.
+- [ ] D2 Create World uses the current 2026–27 baseline with a normal ScoutZero
+      account on the main site ([BZE-359](https://linear.app/bzero/issue/BZE-359)).
+      Local ordinary Create uses reproducible private inputs. The dated
+      owner-only hosted proof and lifecycle code are retained in
+      [#668](https://github.com/Bet-Zero/scoutzero/pull/668). Establish trusted
+      runtime access to the pinned inputs, compare the shared Firebase setup
+      and verify normal-account create, save, History, reload and owner
+      isolation. The normal hosted 2026–27 baseline is pending. Routine
+      website updates already use Vercel Git delivery from `main`.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
