@@ -105,7 +105,7 @@ changes V1 scope.
       same books, salary-matching amounts, exceptions, hard caps, draft rights
       and verdicts. Today Sandbox uses a different salary path and a different
       draft-source revision. Invented inputs are removed: placeholder TPEs
-      (PR #690) and default free-agent exception amounts (this change).
+      (PR #690) and default free-agent exception amounts (November 28).
 - [ ] S4 Sandbox wording reads as a first-class workspace. Today the selector
       says "local preview" and "Saved worlds are the primary Architect
       workspace".
