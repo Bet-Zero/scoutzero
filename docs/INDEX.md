@@ -43,12 +43,11 @@ docs/
 │
 ├── standards/          # Rules that govern the project
 │   ├── DOCUMENTATION_STRUCTURE_STANDARD.md
-│   ├── RETURN_PACKAGE_STANDARD.md
-│   ├── WORKSPACE_GUARDRAILS.md
-│   ├── COMMUNICATION_RULES.md
-│   ├── CREATING_PERMANENT_DOCS.md
-│   ├── DOCUMENTATION_UPDATE_RULES.md
-│   └── CONTRACT_NORMALIZATION_RULES.md
+│   ├── ARCHITECT_VISUAL_STANDARD.md
+│   ├── CONTRACT_NORMALIZATION_RULES.md
+│   └── WORKFLOW_CHANGES.md
+│
+├── agent-guides/       # Architect V1 contract and Architect boundary
 │
 └── INDEX.md            # This file
 ```
@@ -98,12 +97,8 @@ Generated files (`COMPONENT_INDEX.md`, `FILE_MAP.md`, `components/`) live at `do
 
 ## Standards
 
-- [Documentation Structure Standard](standards/DOCUMENTATION_STRUCTURE_STANDARD.md)
-- [Return Package Standard](standards/RETURN_PACKAGE_STANDARD.md)
-- [Workspace Guardrails](standards/WORKSPACE_GUARDRAILS.md)
-- [Communication Rules](standards/COMMUNICATION_RULES.md)
-- [Creating Permanent Docs](standards/CREATING_PERMANENT_DOCS.md)
-- [Documentation Update Rules](standards/DOCUMENTATION_UPDATE_RULES.md)
+- [Documentation Structure Standard](standards/DOCUMENTATION_STRUCTURE_STANDARD.md) — where docs go and when to write them
+- [Architect Visual Standard](standards/ARCHITECT_VISUAL_STANDARD.md)
 - [Contract Normalization Rules](standards/CONTRACT_NORMALIZATION_RULES.md)
 - [Workflow Changes](standards/WORKFLOW_CHANGES.md) — record of changes to how AI agents work, and where removed files went
 
@@ -111,10 +106,10 @@ Generated files (`COMPONENT_INDEX.md`, `FILE_MAP.md`, `components/`) live at `do
 
 ## Working Docs & Archive
 
-- **Active work**: `work/<initiative>/` at repo root (plans, preflights, return packages)
+- **Active work**: `work/<initiative>/` at repo root (plans shared by several pull requests)
 - **Completed work**: `archive/work/<initiative>/` — moves there when done
 - **Docs archive**: `archive/docs/` — historical versions of permanent docs
 
 ---
 
-**Last Updated**: May 2026
+**Last Updated**: November 2026
