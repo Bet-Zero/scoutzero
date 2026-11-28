@@ -1,82 +1,48 @@
 ---
 name: architect-boundary.md
-description: Durable Architect boundary rules for AI agents. Referenced from AGENTS.md; do not re-paste into Linear issues or projects.
+description: Standing Architect product, data-architecture and design rules for AI agents. Referenced from AGENTS.md; do not re-paste into Linear issues.
 ---
 
-# Architect Boundary (Durable Rules)
+# Architect Boundary
 
-Standing scope and design rules for all Architect work. Linear issues should
-reference this doc plus one short issue-specific scope line — never restate it.
-
-## Status
-
-Owner decision 2026-07-11 (BZE-243): Architect is **not complete**; the
-2026-07-04 "functionally 🟢" label is superseded. What "complete" means now
-lives in `docs/agent-guides/architect-v1-completion-contract.md` — supported
-actions verified on 2026-07-04 remain valid evidence that moves execute, and
-proven work is not reopened without evidence it is stale, incomplete, or
-contradicted. If a UI task turns out to require functional/engine changes,
-split it into a separately flagged issue — never absorb it silently.
+Standing product and design rules for Architect work. What V1 must do is in the
+[V1 completion contract](architect-v1-completion-contract.md); how to build,
+test, review and merge a change is in [AGENTS.md](../../AGENTS.md). Linear issues
+link here instead of restating it.
 
 ## Trusted surfaces
 
 - **Full Cap Table** is the trusted money/books surface.
 - **Roster** is the trusted player-state surface.
-- Supported actions are supported only from their proven entry points.
-  Adjacent unfinished surfaces stay honestly labeled Preview or parked.
-  Never let a label overclaim what has been proven.
+- Supported actions are supported from their proven entry points. Adding an
+  entry point doesn't change what the action does. Unfinished surfaces stay
+  honestly labeled Preview or hidden. Never let a label overclaim what works.
 
-## Scope protection (default no, unless the issue explicitly scopes it)
+## Building Trade Machine and rules capabilities
 
-- No Trade Machine expansion or redesign inside other passes; TM work gets its
-  own explicitly scoped lane.
-- No CBA/rules/engine changes during UI/UX passes.
-- No generic save/load/world cleanup, generic dead-money work, or broad
-  action-loop QA as a side effect of another lane.
-- No broadening of action-family semantics when adding entry points.
+Complete shared, rules-driven capabilities, not a new implementation for each
+example trade (owner, November 5 and November 10). Reuse the accepted CBA
+foundation, trade rules, atomic writer and season manager. Keep evaluating a
+proposal, saving the whole deal and advancing its world distinct but
+consistent; don't build parallel engines or a speculative general framework.
+Ordinary transaction shapes must not get artificial player or routing limits
+because of an example's size; actual source, eligibility and NBA-rule limits
+still apply. Examples verify mechanisms; they don't define the complete
+supported universe.
 
-## Trade Machine completion direction
+## Data architecture
 
-Owner direction recorded 2026-11-05 and reset 2026-11-10: complete shared,
-rules-driven capabilities, not a new implementation for every example trade.
-Work the next unchecked item in the
-[V1 finish checklist](../../work/architect-completion/V1_FINISH_CHECKLIST.md);
-it is the frozen remaining list and the only current status home. Worlds follow
-the simulation standard recorded there and in the V1 contract.
-Reuse the accepted CBA foundation, trade rules, atomic writer and season manager.
-Keep evaluating a proposal, saving the whole deal and advancing its world distinct
-but consistent; do not build parallel engines or a speculative general framework.
-Known ordinary transaction shapes must not acquire artificial player/routing
-limits solely from an example's size. Actual source, eligibility and NBA-rule
-limits still apply. Classify implementation, proof, factual-evidence and release
-gaps separately. Examples verify mechanisms; they do not define the product's
-complete supported universe.
-
-## Owner gates
-
-- Draft-pick application data uses ScoutZero's existing Firebase/Firestore
-  architecture; first-party Firebase Storage is permitted for immutable release
-  files when needed. Vercel hosts the app, not a separate draft-data store.
-  Linear is development coordination/private evidence retention only, never a
-  product runtime dependency. A missing credential cannot authorize another
-  provider. Owner directions: BZE-321 comments `3a7a53b0-f6a5-4e12-a538-7223492e126b`
-  and `2c01c2f2-7a28-47c1-8ed4-3d9b5e38989b`.
-- Draft-data delivery reviews must trace the actual client, endpoint and data
-  source against this architecture. Security checks or a code-level ACCEPT do
-  not approve a provider choice. Production source writes and migration of
-  existing saved worlds keep their separate authorization gates. First-round
-  Apply in new simulation worlds is owner-approved (2026-11-10). Use the
-  normal ScoutZero account and reviewed `main` delivery path (2026-11-28).
-  Verify hosted behavior when delivering it. First installation of the private
-  baseline and changes to shared runtime permissions, Rules or indexes remain
-  separate operations.
-
-- Owner-directed subjective design waves and other approval-bound UI work need
-  owner sign-off on screenshots before landing. An explicitly requested isolated
-  correction follows the focused verification in AGENTS.md; it does not create
-  a new design-wave approval. Do not use this to land an unapproved design choice.
-- For those owner reviews, use **1280×720** screenshots of every changed room.
-- Draft-night experience is parked by owner decision.
+- Architect data uses ScoutZero's existing Firebase/Firestore project;
+  first-party Firebase Storage is allowed for immutable release files. Vercel
+  hosts the app, not a separate data store. Linear is for coordination and
+  private file retention only, never a runtime dependency (owner, BZE-321
+  comments `3a7a53b0-f6a5-4e12-a538-7223492e126b` and
+  `2c01c2f2-7a28-47c1-8ed4-3d9b5e38989b`).
+- A missing credential doesn't authorize another provider. Choosing a new
+  provider or a paid service is the owner's decision.
+- Starting-data packages stay private, versioned and digest-checked at runtime,
+  outside the Git build and browser bundles. Existing worlds keep their original
+  baselines.
 
 ## Design laws (locked owner decisions)
 
@@ -90,12 +56,7 @@ complete supported universe.
 - Owner-facing copy uses GM language. Banned internal vocabulary on product
   surfaces: "posture", "truth", "guard", "canonical", "authority", raw world
   IDs, emulator/debug indicators, proof/scaffolding tags.
+- The draft-night experience is parked by owner decision.
 
-## Validation
-
-- Scoped suites per AGENTS.md; note `test:architect` skips `.tsx`/`.jsx` —
-  component-level checks need `test:ui`.
-- Select checks from actual changed behavior and consumers. A presentation-only
-  change does not require engine, draft or emulator suites merely because it is
-  in Architect. Preserve the owner screenshot/approval gates above and report
-  affected pre-existing failures honestly.
+Owner screenshot reviews of Architect use **1280×720**. Which changes need the
+owner's approval before merging is set in AGENTS.md ("Ask the owner first").
