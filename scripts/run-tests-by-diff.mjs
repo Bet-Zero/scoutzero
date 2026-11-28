@@ -45,7 +45,8 @@ const FILE_READ_TESTS = [
   ],
 ];
 // Scripts the runner or CI invokes. Changing one is a shared-environment change.
-const RUNNER_SCRIPTS = new Set([
+// tests/runTestsByDiff.test.ts checks that every `npm run` in a workflow is here.
+export const RUNNER_SCRIPTS = new Set([
   'prepare',
   'preinstall',
   'install',
@@ -66,6 +67,7 @@ const RUNNER_SCRIPTS = new Set([
   'lint:architect-gate',
   'validate:project',
   'ci:offer-sheet-creation-emulator-gate',
+  'regress',
 ]);
 // A package.json edit confined to scripts the runner and CI don't use (adding
 // or removing a helper command) doesn't change the build or test environment.

@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -20,6 +21,7 @@ import {
   selectTestPlan,
   executePlan,
   packageScriptsOnly,
+  RUNNER_SCRIPTS,
 } from '../scripts/run-tests-by-diff.mjs';
 
 const temporary: string[] = [];
@@ -313,6 +315,20 @@ describe('actual change rather than feature responsibility', () => {
         })
       ).commands.some((c) => c.script === 'test:full')
     ).toBe(true);
+  });
+  it('treats every npm script a workflow runs as a runner script', () => {
+    const workflows = readdirSync('.github/workflows').filter((file) =>
+      file.endsWith('.yml')
+    );
+    const invoked = workflows.flatMap((file) =>
+      [
+        ...readFileSync(path.join('.github/workflows', file), 'utf8').matchAll(
+          /npm run ([\w:-]+)/g
+        ),
+      ].map((match) => match[1])
+    );
+    expect(invoked.length).toBeGreaterThan(0);
+    expect(invoked.filter((script) => !RUNNER_SCRIPTS.has(script))).toEqual([]);
   });
   it('keeps a scoped tooling type configuration out of full application validation', async () => {
     const plan = await selectTestPlan(['tsconfig.cloud.json'], {

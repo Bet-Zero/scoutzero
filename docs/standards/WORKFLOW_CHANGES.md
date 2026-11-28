@@ -233,8 +233,13 @@ change.
 
 ### Not changed
 
-- Every "Ask the owner first" safety item from November 22 except merging, which
-  is now routine.
+- The November 22 owner gates for source data, production and Firebase
+  deployments, migration, billing, purchases, credentials, permissions, outside
+  contact, private data and scope. Three gates were loosened, as the table above
+  says: merging is routine, design approval applies to redesigns only, and
+  deleting or replacing docs and plans no longer needs the owner (deleting saved
+  user data still does). Second review is no longer required for edits to CI,
+  the test runner or these rules unless they weaken tests or touch credentials.
 - Application tests, NBA rulebook lookup and pin test, security tests of the
   review workflow, CI's pull request and nightly jobs, the Architect type-cast
   gate, and the NBA data maintenance and publication workflows.
