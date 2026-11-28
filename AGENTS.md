@@ -11,10 +11,12 @@ is recorded in [docs/standards/WORKFLOW_CHANGES.md](docs/standards/WORKFLOW_CHAN
 
 ## The project and the owner
 
-ScoutZero (public name HoopZero) is a personal NBA scouting and GM web app built
+ScoutZero (public name HoopZero) is an NBA scouting and GM web app built
 with React 18, Vite, TypeScript, Tailwind CSS 3, Zod and Firebase (Firestore,
 Auth, Functions). Vercel hosts the website, so **merging to `main` updates the
-live site**.
+live site**. Architect is part of that site and uses normal ScoutZero accounts
+and account-owned saved worlds. Routine reviewed merges use this same delivery
+path. The former owner-only Preview is retained as historical proof.
 
 The owner does not write code and relies on AI for all technical work.
 
@@ -34,8 +36,8 @@ The owner does not write code and relies on AI for all technical work.
   `architect_baseTeams`, `architect_baseEntitlements`, `architect_basePickRules`,
   `architect_draftPickReleases`.
 - Run production push, admin or Firestore pipeline scripts, deploy Firebase
-  Functions or Rules, publish data to production, or migrate existing saved
-  worlds.
+  Functions, Rules or indexes, publish data to production, or migrate existing
+  saved worlds.
 - Turn on billing, buy anything, create credentials, change account
   permissions, or contact outside people or companies.
 - Put private data (the starting-data packages, NBA source copies, credentials,

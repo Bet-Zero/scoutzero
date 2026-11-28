@@ -18,6 +18,27 @@ Samsung T7 SSD; its precise inventory is unverified. Do not imply it was lost,
 reconstruct the entire SSD, or make roster cleanup, a new bucket or Enterprise
 OIDC prerequisites for ordinary remote NBA data work.
 
+## Architect delivery
+
+Reviewed `main` merges deploy through the existing ScoutZero Vercel Git
+integration. Verify the deployed commit and the affected flow through the
+normal site when the required data and access are available. Use local demo
+emulators for development and save/reload checks. The former owner-only
+Preview remains available as historical proof in [draft #668]. Its branch
+hold, private build inputs and workspace-specific sign-ins were temporary.
+
+New current-season worlds need trusted initialization, an authenticated
+ScoutZero account and a private, digest-verified runtime baseline. Their
+first hosted installation is tracked by [V1 D2] and [BZE-359]. Keep private
+packages out of Git, build inputs and browser bundles. History and Recent Moves
+use the two composite definitions in `firestore.indexes.json` for current and
+legacy events. Compare against the Firebase project before any authorized
+index deployment and retain unrelated indexes.
+
+[draft #668]: https://github.com/Bet-Zero/scoutzero/pull/668
+[V1 D2]: ../../work/architect-completion/V1_FINISH_CHECKLIST.md#phase-2-deliver-on-the-normal-site
+[BZE-359]: https://linear.app/bzero/issue/BZE-359
+
 ## Setup and normal development
 
 The supported Linux executor has Node 24, Java 21, Chromium, application
