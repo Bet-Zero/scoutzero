@@ -66,10 +66,14 @@ each need the owner's OK, as AGENTS.md lists.
    and never a V1 gate. Known liabilities, credible unresolved signals, actual
    rule violations and known restrictions are never assumed away, and source
    data is never relabeled.
-2. **Unresolved evidence** (November 10). The rights affected by the 29
-   unresolved evidence mappings are not tradeable in V1 and show an honest
-   reason, unless a clearly most-likely reading is adopted as a labeled
-   simulation assumption. They never block unrelated rights.
+2. **Unresolved evidence** (November 10, applied to the current world on
+   November 14). The 29 unresolved evidence mappings (30 rights) belong to the
+   retained 278-identity history. They stay recorded as lineage and are not
+   part of the current tradeable inventory. In the current world, decision 4
+   governs: a right trades when legally eligible, and a genuinely unresolved
+   decisive fact keeps that right visibly unavailable, unless a clearly
+   most-likely reading is adopted as a labeled simulation assumption. An
+   unresolved fact never blocks unrelated rights.
 3. **Frozen scope** (November 10). The checklist is the complete remaining V1
    list. Later discoveries are post-V1 unless they are defects in a listed item.
 4. **All draft-asset categories** ([owner, November 14](https://linear.app/bzero/issue/BZE-243#comment-673a9dca-8f95-4cb0-9dac-d1cd2cb4f7f4)).

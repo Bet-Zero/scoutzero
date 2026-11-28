@@ -204,6 +204,11 @@ the owner. The Architect boundary kept work in separate "lanes", and the V1
 contract applied its final-acceptance evidence standard to every workflow
 change.
 
+Owner said in chat (November 28, 2026): agents may merge their own reviewed,
+in-scope work, and ordinary visible changes proceed without individual
+screenshot approval; meaningful redesigns still need the owner's approval. The
+draft-asset coverage and the simulation standard stay unchanged.
+
 ### What changed
 
 | Item | Change | Where the old version is |
@@ -248,3 +253,12 @@ change.
   merges are authorized; publication, deployments and scope stay gated).
 - The retired BZE-321 draft-review workflows and their tests. They only run for
   a branch that no longer exists and impose nothing on ordinary work.
+
+### Scope wording reconciled after merge
+
+The contract's "unresolved evidence" decision and one checklist note
+contradicted Linear BZE-243. They now match the existing coverage. The 29
+unresolved mappings (30 rights) stay recorded as historical lineage, and
+current rights follow the November 14 draft-asset decision. BZE-243 and the
+Architect Completion project summary were aligned. No implementation, evidence
+or count changed.
